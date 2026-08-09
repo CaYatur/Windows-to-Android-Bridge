@@ -1,0 +1,37 @@
+# ---- Signing material: NEVER commit ----
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# ---- Android / Gradle ----
+.gradle/
+build/
+local.properties
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+.vs/
+publish/
+
+# ---- Installer output ----
+windows/installer/Output/
+
+# ---- IDE / OS ----
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Local runtime state ----
+*.log
