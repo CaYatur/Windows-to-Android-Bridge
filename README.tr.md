@@ -7,8 +7,8 @@ ikisi de çalışsın.
 
 🇬🇧 [English README](README.md)
 
-> **Durum:** geliştirme aşamasında. Aşağıdaki işaretli maddeler çalışır ve
-> gerçek cihazda doğrulanmıştır.
+> **Durum:** [v0.1.0 yayınlandı](../../releases/latest). Aşağıdakilerin tamamı
+> gerçek bilgisayar, telefon ve saatte denenmiştir.
 
 ---
 
@@ -16,7 +16,11 @@ ikisi de çalışsın.
 
 **Telefonda görürsünüz**
 
-- Çalan parça: başlık, sanatçı, albüm, kapak görseli, konum/süre, kaynak uygulama
+- Çalan parça, telefonda **gerçek bir medya oturumu** olarak — bildirim
+  gölgesinde, kilit ekranında ve Hızlı Ayarlar oynatıcısında kapak görseli,
+  kontroller ve ilerleme çubuğuyla, sanki müzik telefonda çalıyormuş gibi.
+  Varsayılan açık; Ayarlar'dan kapatılabilir.
+- Başlık, sanatçı, albüm, kapak görseli, konum/süre, kaynak uygulama
 - CPU, GPU, RAM, ağ (yükleme/indirme), disk kullanımı
 - Pil yüzdesi ve şarj durumu (dizüstü bilgisayarlarda)
 - Ses seviyesi ve sessize alma durumu

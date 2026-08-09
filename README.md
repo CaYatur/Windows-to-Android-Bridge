@@ -7,8 +7,8 @@ work.
 
 🇹🇷 [Türkçe README](README.tr.md)
 
-> **Status:** in development. Items checked off below are implemented and
-> verified on real hardware.
+> **Status:** [v0.1.0 is released](../../releases/latest). Everything below is
+> implemented and was exercised on a physical PC, phone and watch.
 
 ---
 
@@ -16,7 +16,11 @@ work.
 
 **See on your phone**
 
-- Now playing: title, artist, album, cover art, position/duration, source app
+- Now playing, mirrored as a **real Android media session** — it shows up in the
+  notification shade, on the lock screen and in the Quick Settings player, with
+  cover art, transport buttons and a seek bar, as if the music were playing on
+  the phone. On by default; switchable in Settings.
+- Title, artist, album, cover art, position/duration, source app
 - CPU, GPU, RAM, network (up/down) and disk usage
 - Battery percentage and charging state (on laptops)
 - Volume level and mute state
