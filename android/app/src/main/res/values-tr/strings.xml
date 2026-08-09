@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kesme işaretleri Android kaynak dosyalarında \' olarak yazılmalıdır. -->
+<resources>
+    <string name="app_name">WinBridge</string>
+
+    <!-- Bağlantı durumu -->
+    <string name="status_connected_to">%1$s bağlı</string>
+    <string name="status_connecting">Bağlanıyor…</string>
+    <string name="status_disconnected">Bağlı değil</string>
+    <string name="status_not_paired">Henüz eşleşmiş bilgisayar yok</string>
+    <string name="status_over_bluetooth">Bluetooth üzerinden</string>
+    <string name="status_over_lan">Wi-Fi üzerinden</string>
+
+    <string name="notification_channel">Bağlantı</string>
+    <string name="notification_channel_desc">Bilgisayarınızla bağlantıyı açık tutar</string>
+
+    <!-- Gezinme -->
+    <string name="tab_overview">Genel</string>
+    <string name="tab_media">Medya</string>
+    <string name="tab_system">Sistem</string>
+    <string name="tab_control">Kontrol</string>
+    <string name="tab_settings">Ayarlar</string>
+
+    <!-- Medya -->
+    <string name="media_title">Şimdi çalıyor</string>
+    <string name="media_nothing">Hiçbir şey çalmıyor</string>
+    <string name="media_previous">Önceki</string>
+    <string name="media_playpause">Oynat veya duraklat</string>
+    <string name="media_next">Sonraki</string>
+    <string name="media_volume">Ses</string>
+    <string name="media_muted">Sessiz</string>
+
+    <!-- Sistem -->
+    <string name="system_title">Sistem</string>
+    <string name="system_cpu">İşlemci</string>
+    <string name="system_gpu">Ekran kartı</string>
+    <string name="system_ram">Bellek</string>
+    <string name="system_network">Ağ</string>
+    <string name="system_disk">Disk</string>
+    <string name="system_battery">Pil</string>
+    <string name="system_battery_charging">şarj oluyor</string>
+    <string name="system_battery_low">düşük</string>
+    <string name="system_battery_critical">kritik</string>
+    <string name="system_battery_full">dolu</string>
+    <string name="system_battery_none">Pil yok</string>
+    <string name="system_uptime">%1$s açık</string>
+    <string name="system_waiting">Veri bekleniyor…</string>
+
+    <!-- Güç kontrolü -->
+    <string name="control_title">Güç</string>
+    <string name="control_lock">Kilitle</string>
+    <string name="control_sleep">Uyku</string>
+    <string name="control_hibernate">Hazırda beklet</string>
+    <string name="control_display_off">Ekranı kapat</string>
+    <string name="control_logoff">Oturumu kapat</string>
+    <string name="control_restart">Yeniden başlat</string>
+    <string name="control_shutdown">Kapat</string>
+    <string name="control_unsupported">Bu bilgisayarda desteklenmiyor</string>
+    <string name="control_confirm_title">%1$s?</string>
+    <string name="control_confirm_body">Bilgisayarınız hemen bu işlemi yapacak: %1$s.</string>
+    <string name="control_confirm_yes">Yap</string>
+    <string name="control_cancel">İptal</string>
+
+    <!-- Kurulum -->
+    <string name="setup_welcome_title">Bilgisayarınızı bağlayın</string>
+    <string name="setup_welcome_body">WinBridge\'i Windows\'a kurun, tepsi simgesinden “Telefon eşleştir” deyin ve çıkan kodu okutun.</string>
+    <string name="setup_scan">Kodu okut</string>
+    <string name="setup_permissions_title">İzinler</string>
+    <string name="setup_permissions_body">Bluetooth, Wi-Fi olmadan bilgisayarınıza ulaşmak için gerekli. Kamera yalnızca eşleştirme kodunu okutmak için kullanılır.</string>
+    <string name="setup_grant">İzin ver</string>
+    <string name="setup_battery_title">Bağlantıyı açık tutun</string>
+    <string name="setup_battery_body">Android, pil tasarrufu için arka plandaki bağlantıyı kesebilir. WinBridge\'i muaf tutmak bağlantıyı sürdürür.</string>
+    <string name="setup_battery_action">Arka planda çalışmasına izin ver</string>
+    <string name="setup_autostart_title">Bu telefonda bir adım daha</string>
+    <string name="setup_autostart_body">Telefonunuzun kendi otomatik başlatma listesi var. Ayarlar\'dan WinBridge\'i bulup Otomatik başlatma\'yı açın — açmazsanız ekran kilitlenince bağlantı kesilir.</string>
+    <string name="setup_done">Bitir</string>
+    <string name="setup_skip">Atla</string>
+
+    <!-- Eşleştirme -->
+    <string name="pair_title">Bilgisayarla eşleştir</string>
+    <string name="pair_camera_hint">Kamerayı bilgisayar ekranındaki koda tutun.</string>
+    <string name="pair_success">%1$s ile eşleşildi</string>
+    <string name="pair_failed">Eşleştirme başarısız: %1$s</string>
+    <string name="pair_bad_code">Bu bir WinBridge eşleştirme kodu değil.</string>
+    <string name="pair_camera_denied">Kodu okutmak için kamera izni gerekli.</string>
+
+    <!-- Ayarlar -->
+    <string name="settings_prefer_bluetooth">Bluetooth\'u tercih et</string>
+    <string name="settings_prefer_bluetooth_hint">Bluetooth Wi-Fi olmadan çalışır. Wi-Fi kapak görselleri için daha hızlıdır.</string>
+    <string name="settings_paired_pc">Eşleşmiş bilgisayar</string>
+    <string name="settings_forget">Bu bilgisayarı kaldır</string>
+    <string name="settings_forget_confirm">%1$s kaldırılsın mı? Yeniden eşleştirmeniz gerekir.</string>
+    <string name="settings_bluetooth_address">Bluetooth adresi</string>
+    <string name="settings_lan_address">Ağ adresi</string>
+    <string name="settings_reconnect">Şimdi yeniden bağlan</string>
+    <string name="settings_about">WinBridge %1$s</string>
+
+    <!-- Widget\'lar -->
+    <string name="widget_media">WinBridge medya</string>
+    <string name="widget_system">WinBridge sistem</string>
+    <string name="widget_combined">WinBridge genel</string>
+    <string name="widget_power">WinBridge güç</string>
+    <string name="widget_offline">Bağlı değil</string>
+</resources>

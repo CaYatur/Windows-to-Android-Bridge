@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Base language: English. Any device language without its own values-XX
+     directory falls back to this file. -->
+<resources>
+    <string name="app_name">WinBridge</string>
+
+    <!-- Connection status -->
+    <string name="status_connected_to">Connected to %1$s</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_disconnected">Not connected</string>
+    <string name="status_not_paired">No PC paired yet</string>
+    <string name="status_over_bluetooth">over Bluetooth</string>
+    <string name="status_over_lan">over Wi-Fi</string>
+
+    <string name="notification_channel">Connection</string>
+    <string name="notification_channel_desc">Keeps the link to your PC alive</string>
+
+    <!-- Navigation -->
+    <string name="tab_overview">Overview</string>
+    <string name="tab_media">Media</string>
+    <string name="tab_system">System</string>
+    <string name="tab_control">Control</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Media -->
+    <string name="media_title">Now playing</string>
+    <string name="media_nothing">Nothing is playing</string>
+    <string name="media_previous">Previous</string>
+    <string name="media_playpause">Play or pause</string>
+    <string name="media_next">Next</string>
+    <string name="media_volume">Volume</string>
+    <string name="media_muted">Muted</string>
+
+    <!-- System -->
+    <string name="system_title">System</string>
+    <string name="system_cpu">CPU</string>
+    <string name="system_gpu">GPU</string>
+    <string name="system_ram">Memory</string>
+    <string name="system_network">Network</string>
+    <string name="system_disk">Disk</string>
+    <string name="system_battery">Battery</string>
+    <string name="system_battery_charging">charging</string>
+    <string name="system_battery_low">low</string>
+    <string name="system_battery_critical">critical</string>
+    <string name="system_battery_full">full</string>
+    <string name="system_battery_none">No battery</string>
+    <string name="system_uptime">Up %1$s</string>
+    <string name="system_waiting">Waiting for data…</string>
+
+    <!-- Power control -->
+    <string name="control_title">Power</string>
+    <string name="control_lock">Lock</string>
+    <string name="control_sleep">Sleep</string>
+    <string name="control_hibernate">Hibernate</string>
+    <string name="control_display_off">Turn off display</string>
+    <string name="control_logoff">Sign out</string>
+    <string name="control_restart">Restart</string>
+    <string name="control_shutdown">Shut down</string>
+    <string name="control_unsupported">Not supported on this PC</string>
+    <string name="control_confirm_title">%1$s?</string>
+    <string name="control_confirm_body">This will %1$s your PC right away.</string>
+    <string name="control_confirm_yes">Do it</string>
+    <string name="control_cancel">Cancel</string>
+
+    <!-- Setup -->
+    <string name="setup_welcome_title">Connect your PC</string>
+    <string name="setup_welcome_body">Install WinBridge on Windows, then choose “Pair a phone” from its tray icon and scan the code it shows.</string>
+    <string name="setup_scan">Scan the code</string>
+    <string name="setup_permissions_title">Permissions</string>
+    <string name="setup_permissions_body">Bluetooth is needed to reach your PC without Wi-Fi. Camera is needed only to scan the pairing code.</string>
+    <string name="setup_grant">Grant</string>
+    <string name="setup_battery_title">Keep the connection alive</string>
+    <string name="setup_battery_body">Android may stop the connection in the background to save power. Exempting WinBridge keeps it reachable.</string>
+    <string name="setup_battery_action">Allow background use</string>
+    <string name="setup_autostart_title">One extra step on this phone</string>
+    <string name="setup_autostart_body">Your phone has its own autostart list. Open Settings, find WinBridge, and turn Autostart on — otherwise the connection stops when the screen locks.</string>
+    <string name="setup_done">Finish</string>
+    <string name="setup_skip">Skip</string>
+
+    <!-- Pairing -->
+    <string name="pair_title">Pair with a PC</string>
+    <string name="pair_camera_hint">Point the camera at the code on your PC screen.</string>
+    <string name="pair_success">Paired with %1$s</string>
+    <string name="pair_failed">Pairing failed: %1$s</string>
+    <string name="pair_bad_code">That code is not a WinBridge pairing code.</string>
+    <string name="pair_camera_denied">Camera access is needed to scan the code.</string>
+
+    <!-- Settings -->
+    <string name="settings_prefer_bluetooth">Prefer Bluetooth</string>
+    <string name="settings_prefer_bluetooth_hint">Bluetooth works without Wi-Fi. Wi-Fi is faster for cover art.</string>
+    <string name="settings_paired_pc">Paired PC</string>
+    <string name="settings_forget">Forget this PC</string>
+    <string name="settings_forget_confirm">Remove %1$s? You will need to pair again.</string>
+    <string name="settings_bluetooth_address">Bluetooth address</string>
+    <string name="settings_lan_address">Network address</string>
+    <string name="settings_reconnect">Reconnect now</string>
+    <string name="settings_about">WinBridge %1$s</string>
+
+    <!-- Widgets -->
+    <string name="widget_media">WinBridge media</string>
+    <string name="widget_system">WinBridge system</string>
+    <string name="widget_combined">WinBridge overview</string>
+    <string name="widget_power">WinBridge power</string>
+    <string name="widget_offline">Not connected</string>
+</resources>
