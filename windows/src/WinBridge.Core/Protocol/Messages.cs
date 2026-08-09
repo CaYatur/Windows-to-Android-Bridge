@@ -163,6 +163,52 @@ public sealed record ErrorMessage
     [JsonPropertyName("detail")] public string? Detail { get; init; }
 }
 
+public sealed record SubscribeMessage
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.Subscribe;
+    /// <summary>Stream name to interval in ms. 0 = on change only, -1 = unsubscribe.</summary>
+    [JsonPropertyName("rates")] public Dictionary<string, int> Rates { get; init; } = [];
+}
+
+public sealed record BlobRequest
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.RequestBlob;
+    [JsonPropertyName("id")] public string Id { get; init; } = "";
+}
+
+public sealed record MediaCommand
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.CommandMedia;
+    [JsonPropertyName("action")] public string Action { get; init; } = "";
+    [JsonPropertyName("posMs")] public long PosMs { get; init; }
+}
+
+public sealed record VolumeCommand
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.CommandVolume;
+    [JsonPropertyName("action")] public string Action { get; init; } = "";
+    [JsonPropertyName("level")] public int Level { get; init; }
+}
+
+public sealed record PowerCommand
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.CommandPower;
+    [JsonPropertyName("action")] public string Action { get; init; } = "";
+    [JsonPropertyName("delaySec")] public int DelaySec { get; init; }
+}
+
+public sealed record PingMessage
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.Ping;
+    [JsonPropertyName("echo")] public long Echo { get; init; }
+}
+
+public sealed record PongMessage
+{
+    [JsonPropertyName("t")] public string Type => MessageTypes.Pong;
+    [JsonPropertyName("echo")] public long Echo { get; init; }
+}
+
 public static class Json
 {
     public static readonly JsonSerializerOptions Options = new()

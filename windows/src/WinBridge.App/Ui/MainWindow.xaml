@@ -1,0 +1,78 @@
+<Window x:Class="WinBridge.App.Ui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinBridge" Height="620" Width="760"
+        MinHeight="480" MinWidth="620"
+        Background="{StaticResource Bg}"
+        WindowStartupLocation="CenterScreen">
+
+    <TabControl x:Name="Tabs" Background="{StaticResource Bg}" BorderThickness="0" Margin="8">
+
+        <TabItem x:Name="TabStatus" Header="Status">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock x:Name="LblConnections" Style="{StaticResource Heading}" Text="Connected phones" />
+                    <Border Background="{StaticResource Card}" CornerRadius="8" Padding="14" Margin="0,0,0,18">
+                        <StackPanel x:Name="ConnectionsPanel" />
+                    </Border>
+
+                    <TextBlock x:Name="LblHost" Style="{StaticResource Heading}" Text="This PC" />
+                    <Border Background="{StaticResource Card}" CornerRadius="8" Padding="14">
+                        <StackPanel x:Name="HostPanel" />
+                    </Border>
+
+                    <Button x:Name="BtnPair" Content="Pair a phone…" HorizontalAlignment="Left"
+                            Margin="0,18,0,0" Click="OnPairClick" />
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem x:Name="TabDevices" Header="Devices">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock x:Name="LblPaired" Style="{StaticResource Heading}" Text="Paired devices" />
+                    <StackPanel x:Name="DevicesPanel" />
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem x:Name="TabSettings" Header="Settings">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <CheckBox x:Name="ChkStartup" Content="Start automatically when I sign in"
+                              Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+                    <CheckBox x:Name="ChkBluetooth" Content="Accept Bluetooth connections"
+                              Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+                    <CheckBox x:Name="ChkLan" Content="Accept Wi-Fi / LAN connections"
+                              Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+                    <CheckBox x:Name="ChkPreferBt" Content="Prefer Bluetooth when both are available"
+                              Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
+
+                    <CheckBox x:Name="ChkRemotePairing" Content="Allow pairing from outside the local network"
+                              Checked="OnSettingChanged" Unchecked="OnSettingChanged" Margin="0,8,0,2" />
+                    <TextBlock x:Name="LblRemoteHint" Style="{StaticResource Dim}" Margin="24,0,0,14" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,14">
+                        <TextBlock x:Name="LblPort" VerticalAlignment="Center" Margin="0,0,10,0" Text="Listening port" />
+                        <TextBox x:Name="TxtPort" Width="90" Background="#FF2F2F36" Foreground="White"
+                                 BorderThickness="0" Padding="6,4" LostFocus="OnPortChanged" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <TextBlock x:Name="LblLanguage" VerticalAlignment="Center" Margin="0,0,10,0" Text="Language" />
+                        <ComboBox x:Name="CmbLanguage" Width="180" SelectionChanged="OnLanguageChanged" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="LblRestartNote" Style="{StaticResource Dim}" />
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem x:Name="TabLog" Header="Activity">
+            <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto" Padding="16">
+                <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="12"
+                           Foreground="{StaticResource Muted}" />
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
+</Window>

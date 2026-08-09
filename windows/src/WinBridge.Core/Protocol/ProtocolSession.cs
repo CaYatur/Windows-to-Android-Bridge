@@ -25,6 +25,7 @@ public sealed class ProtocolSession : IDisposable
     public string PeerDeviceId { get; }
     public string PeerName { get; }
     public string PeerPlatform { get; }
+    public string PeerMode { get; }
 
     private ProtocolSession(Stream stream, CryptoBox crypto, Hello peerHello)
     {
@@ -33,18 +34,21 @@ public sealed class ProtocolSession : IDisposable
         PeerDeviceId = peerHello.DeviceId;
         PeerName = peerHello.Name;
         PeerPlatform = peerHello.Platform;
+        PeerMode = peerHello.Mode;
     }
 
     /// <summary>
-    /// Server side of the handshake. <paramref name="resolvePsk"/> is given the
-    /// peer's device id and returns the stored pairing key, or null if that
-    /// device is not paired — in which case the connection is refused. Pairing
-    /// itself is a separate, user-initiated flow.
+    /// Server side of the handshake. <paramref name="resolveKey"/> receives the
+    /// whole HELLO — not just the device id — so the caller can distinguish a
+    /// normal session from a pairing attempt and answer with the stored key, the
+    /// key currently offered by an open pairing window, or null to refuse.
+    /// Returning null for an unknown device is what keeps the listener safe to
+    /// expose.
     /// </summary>
     public static async Task<ProtocolSession> AcceptAsync(
         Stream stream,
         LocalIdentity me,
-        Func<string, byte[]?> resolvePsk,
+        Func<Hello, byte[]?> resolveKey,
         CancellationToken ct)
     {
         var frame = await Framing.ReadAsync(stream, ct).ConfigureAwait(false);
@@ -55,7 +59,7 @@ public sealed class ProtocolSession : IDisposable
         if (hello.Version != 1)
             throw new ProtocolException($"unsupported protocol version {hello.Version}");
 
-        byte[]? psk = resolvePsk(hello.DeviceId);
+        byte[]? psk = resolveKey(hello);
         if (psk is null)
             throw new ProtocolException($"device {hello.DeviceId} is not paired");
 
@@ -112,7 +116,8 @@ public sealed class ProtocolSession : IDisposable
         Stream stream,
         LocalIdentity me,
         byte[] psk,
-        CancellationToken ct)
+        CancellationToken ct,
+        string mode = "session")
     {
         using var ecdh = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
         byte[] clientEphPub = ExportPoint(ecdh);
@@ -123,6 +128,7 @@ public sealed class ProtocolSession : IDisposable
             DeviceId = me.DeviceId,
             Name = me.Name,
             Platform = me.Platform,
+            Mode = mode,
             EphPub = Convert.ToBase64String(clientEphPub),
             Nonce = Convert.ToBase64String(clientNonce),
         };

@@ -14,7 +14,7 @@ await Check("handshake succeeds and messages flow both ways", async () =>
     var (server, client) = await LoopbackPair();
 
     var serverTask = ProtocolSession.AcceptAsync(
-        server, new LocalIdentity("win-1", "TEST-PC", "windows"), _ => psk, Cancel());
+        server, new LocalIdentity("win-1", "TEST-PC", "windows"), h => psk, Cancel());
     var clientTask = ProtocolSession.ConnectAsync(
         client, new LocalIdentity("droid-1", "Test Phone", "android"), psk, Cancel());
 
@@ -39,7 +39,7 @@ await Check("binary blobs survive the channel", async () =>
 {
     byte[] psk = CryptoBox.RandomBytes(32);
     var (server, client) = await LoopbackPair();
-    var st = ProtocolSession.AcceptAsync(server, new LocalIdentity("w", "w", "windows"), _ => psk, Cancel());
+    var st = ProtocolSession.AcceptAsync(server, new LocalIdentity("w", "w", "windows"), h => psk, Cancel());
     var ct = ProtocolSession.ConnectAsync(client, new LocalIdentity("a", "a", "android"), psk, Cancel());
     using var s = await st;
     using var c = await ct;
@@ -56,7 +56,7 @@ await Check("a wrong pairing key is rejected, not silently accepted", async () =
 {
     var (server, client) = await LoopbackPair();
     var st = ProtocolSession.AcceptAsync(
-        server, new LocalIdentity("w", "w", "windows"), _ => CryptoBox.RandomBytes(32), Cancel());
+        server, new LocalIdentity("w", "w", "windows"), h => CryptoBox.RandomBytes(32), Cancel());
     var ct = ProtocolSession.ConnectAsync(
         client, new LocalIdentity("a", "a", "android"), CryptoBox.RandomBytes(32), Cancel());
 
@@ -72,7 +72,7 @@ await Check("an unpaired device cannot connect at all", async () =>
 {
     var (server, client) = await LoopbackPair();
     var st = ProtocolSession.AcceptAsync(
-        server, new LocalIdentity("w", "w", "windows"), _ => null, Cancel());
+        server, new LocalIdentity("w", "w", "windows"), h => null, Cancel());
     var ct = ProtocolSession.ConnectAsync(
         client, new LocalIdentity("stranger", "stranger", "android"), CryptoBox.RandomBytes(32), Cancel());
 
