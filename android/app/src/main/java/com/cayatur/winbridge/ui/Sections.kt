@@ -135,7 +135,13 @@ fun MediaSection(
             }
 
             if ((media?.durMs ?: 0) > 0) {
-                val progress = (media!!.posMs.toFloat() / media.durMs).coerceIn(0f, 1f)
+                // The host only pushes position when something actually changes,
+                // so showing posMs verbatim makes the clock jump in long steps.
+                // Ticking it forward locally between pushes is what makes it
+                // read like a normal player.
+                val livePosition = rememberLivePosition(media!!)
+                val progress = (livePosition.toFloat() / media.durMs).coerceIn(0f, 1f)
+
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(4.dp),
@@ -144,7 +150,7 @@ fun MediaSection(
                     Modifier.fillMaxWidth().padding(top = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(formatDuration(media.posMs), style = MaterialTheme.typography.bodySmall)
+                    Text(formatDuration(livePosition), style = MaterialTheme.typography.bodySmall)
                     Text(formatDuration(media.durMs), style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -262,6 +268,8 @@ fun SystemSection(system: SystemState?, host: HostState?) {
                 stringResource(R.string.system_battery),
                 system.battery.pct.toDouble(),
                 detail = "${system.battery.pct}%$suffix",
+                tone = MetricTone.LEVEL,
+                charging = system.battery.charging,
             )
         }
     }

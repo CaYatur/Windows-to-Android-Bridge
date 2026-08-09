@@ -24,6 +24,7 @@ import com.cayatur.winbridge.WinBridgeApp
 import com.cayatur.winbridge.net.ConnectionPhase
 import com.cayatur.winbridge.net.TAG
 import com.cayatur.winbridge.widget.WidgetRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -39,6 +40,8 @@ import kotlinx.coroutines.launch
 class BridgeService : Service() {
 
     private val app get() = application as WinBridgeApp
+
+    private val mediaProxy by lazy { MediaProxy(this, app.scope) }
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var bluetoothReceiver: BroadcastReceiver? = null
@@ -74,8 +77,31 @@ class BridgeService : Service() {
         // not — the launcher throttles widget updates anyway, and redrawing a
         // widget once a second to move a CPU bar nobody is looking at is a
         // straightforward way to drain a battery.
-        app.scope.launch {
-            app.state.media.collectLatest { WidgetRepository.publish(this@BridgeService, app.state) }
+        // Main dispatcher on purpose: MediaSessionCompat builds a Handler in its
+        // constructor, so creating or touching it from a pool thread throws
+        // "Can't create handler inside thread that has not called
+        // Looper.prepare()" and takes the whole process down with it.
+        app.scope.launch(Dispatchers.Main) {
+            app.state.media.collectLatest { media ->
+                WidgetRepository.publish(this@BridgeService, app.state)
+
+                if (app.store.showMediaNotification) {
+                    mediaProxy.start()
+                    mediaProxy.update(media, media?.artHash?.let { app.state.loadArt(it) })
+                } else {
+                    mediaProxy.stop()
+                }
+            }
+        }
+
+        // Art usually lands a moment after the metadata, so the notification is
+        // refreshed when it arrives rather than showing a blank cover.
+        app.scope.launch(Dispatchers.Main) {
+            app.state.art.collectLatest { entry ->
+                if (entry == null || !app.store.showMediaNotification) return@collectLatest
+                val media = app.state.media.value ?: return@collectLatest
+                if (media.artHash == entry.first) mediaProxy.update(media, entry.second)
+            }
         }
         app.scope.launch {
             while (true) {
@@ -172,6 +198,7 @@ class BridgeService : Service() {
             runCatching { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback) }
         }
         bluetoothReceiver?.let { runCatching { unregisterReceiver(it) } }
+        runCatching { android.os.Handler(android.os.Looper.getMainLooper()).post { mediaProxy.stop() } }
         super.onDestroy()
     }
 

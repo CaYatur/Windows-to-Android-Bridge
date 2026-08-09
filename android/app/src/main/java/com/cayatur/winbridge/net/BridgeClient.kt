@@ -13,6 +13,7 @@ import com.cayatur.winbridge.protocol.MessageTypes
 import com.cayatur.winbridge.protocol.PeerEvent
 import com.cayatur.winbridge.protocol.PingMessage
 import com.cayatur.winbridge.protocol.PowerCommand
+import com.cayatur.winbridge.protocol.RequestState
 import com.cayatur.winbridge.protocol.ProtocolSession
 import com.cayatur.winbridge.protocol.SubscribeMessage
 import com.cayatur.winbridge.protocol.SystemState
@@ -224,6 +225,9 @@ class BridgeClient(
     }
 
     suspend fun requestArt(hash: String) = send { it.sendJson(BlobRequest(id = "art:$hash")) }
+
+    /** Forces the host to resend everything, e.g. after a setting changed. */
+    suspend fun requestFullState() = send { it.sendJson(RequestState()) }
 
     suspend fun mediaCommand(action: String, posMs: Long = 0) =
         send { it.sendJson(MediaCommand(action = action, posMs = posMs)) }

@@ -13,7 +13,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,21 +55,46 @@ fun SectionCard(
     }
 }
 
-/** A labelled percentage bar. Colour shifts once the value gets uncomfortable. */
+/**
+ * How to read a metric's value.
+ *
+ * [LOAD] is a usage figure where high is bad — CPU at 95% deserves red.
+ * [LEVEL] is a reserve where *low* is bad, which is the opposite: a battery at
+ * 95% is not a warning. Using one rule for both is why a full charging battery
+ * was showing up red.
+ */
+enum class MetricTone { LOAD, LEVEL }
+
+/** A labelled percentage bar. */
 @Composable
 fun MetricBar(
     label: String,
     percent: Double,
     detail: String? = null,
+    tone: MetricTone = MetricTone.LOAD,
+    charging: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val animated by animateFloatAsState(
         targetValue = (percent / 100.0).coerceIn(0.0, 1.0).toFloat(),
         label = label,
     )
+
+    val red = Color(0xFFE5484D)
+    val amber = Color(0xFFD29922)
+    val green = Color(0xFF3FB950)
+
     val color = when {
-        percent >= 90 -> Color(0xFFE5484D)
-        percent >= 70 -> Color(0xFFD29922)
+        // Charging is a reassuring state at any level, so it always reads green.
+        charging -> green
+        tone == MetricTone.LEVEL -> when {
+            percent <= 10 -> red
+            percent <= 25 -> amber
+            percent >= 80 -> green
+            else -> MaterialTheme.colorScheme.primary
+        }
+        percent >= 90 -> red
+        percent >= 70 -> amber
         else -> MaterialTheme.colorScheme.primary
     }
 
@@ -99,6 +128,33 @@ fun KeyValue(label: String, value: String) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
+}
+
+/**
+ * The playback position, ticked forward locally between host pushes.
+ *
+ * The host sends a position only when the track or playback state changes, so
+ * reading `posMs` straight from the last message makes the elapsed time sit
+ * still and then jump. Advancing it from the moment the message arrived keeps
+ * it moving; every new push re-syncs, so it can never drift far.
+ */
+@Composable
+fun rememberLivePosition(media: com.cayatur.winbridge.protocol.MediaState): Long {
+    val anchor = remember(media.title, media.posMs, media.playing) {
+        media.posMs to android.os.SystemClock.elapsedRealtime()
+    }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
+
+    LaunchedEffect(media.playing, media.title, media.posMs) {
+        while (media.playing) {
+            kotlinx.coroutines.delay(500)
+            now = android.os.SystemClock.elapsedRealtime()
+        }
+    }
+
+    val (basePosition, baseTime) = anchor
+    val elapsed = if (media.playing) (now - baseTime).coerceAtLeast(0) else 0
+    return (basePosition + elapsed).coerceIn(0, if (media.durMs > 0) media.durMs else Long.MAX_VALUE)
 }
 
 fun formatGigabytes(megabytes: Long): String =

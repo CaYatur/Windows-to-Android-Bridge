@@ -53,6 +53,16 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
+        <!-- Routes lock screen and headset transport buttons into the media
+             session, which is what makes the controls actually work. -->
+        <receiver
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".service.BootReceiver"
             android:exported="true"

@@ -25,6 +25,8 @@ kotlin {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
+    // Decoding a pairing QR out of a screenshot, for hardware bring-up only.
+    testImplementation(libs.zxing.javase)
 }
 
 tasks.withType<Test> {

@@ -58,6 +58,11 @@ class SecureStore(context: Context) {
         get() = prefs.getBoolean(KEY_SETUP_DONE, false)
         set(value) = prefs.edit { putBoolean(KEY_SETUP_DONE, value) }
 
+    /** Mirror the PC's media as a phone media session. On by default. */
+    var showMediaNotification: Boolean
+        get() = prefs.getBoolean(KEY_MEDIA_NOTIFICATION, true)
+        set(value) = prefs.edit { putBoolean(KEY_MEDIA_NOTIFICATION, value) }
+
     val isPaired: Boolean get() = psk != null && hostDeviceId != null
 
     var psk: ByteArray?
@@ -133,6 +138,7 @@ class SecureStore(context: Context) {
         const val KEY_LAN_PORT = "hostLanPort"
         const val KEY_PREFER_BT = "preferBluetooth"
         const val KEY_SETUP_DONE = "setupComplete"
+        const val KEY_MEDIA_NOTIFICATION = "showMediaNotification"
         const val KEY_PSK = "psk"
     }
 }

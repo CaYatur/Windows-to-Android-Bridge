@@ -16,6 +16,7 @@ wearTiles = "1.4.1"
 horologist = "0.6.22"
 zxing = "3.5.3"
 camerax = "1.4.1"
+media = "1.7.0"
 junit = "4.13.2"
 
 [libraries]
@@ -43,7 +44,10 @@ androidx-glance-material3 = { group = "androidx.glance", name = "glance-material
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 
+androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
+
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+zxing-javase = { group = "com.google.zxing", name = "javase", version.ref = "zxing" }
 
 camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }

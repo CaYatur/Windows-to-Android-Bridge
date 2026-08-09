@@ -101,4 +101,8 @@
     <string name="widget_combined">WinBridge genel</string>
     <string name="widget_power">WinBridge güç</string>
     <string name="widget_offline">Bağlı değil</string>
+    <string name="notification_channel_media">Şimdi çalıyor</string>
+    <string name="notification_channel_media_desc">Bilgisayarınızda çalanı kontrollerle gösterir</string>
+    <string name="settings_media_notification">Kilit ekranında ve bildirimlerde göster</string>
+    <string name="settings_media_notification_hint">Bilgisayarınızdaki müzik, bu telefonda çalıyormuş gibi görünür; kilit ekranından kontrol edebilirsiniz.</string>
 </resources>

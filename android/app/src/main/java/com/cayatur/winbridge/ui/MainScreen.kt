@@ -171,6 +171,35 @@ private fun SettingsSection(onPair: () -> Unit) {
         }
     }
 
+    var mediaNotification by remember { mutableStateOf(app.store.showMediaNotification) }
+
+    SectionCard(stringResource(R.string.media_title)) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.settings_media_notification),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    stringResource(R.string.settings_media_notification_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(
+                checked = mediaNotification,
+                onCheckedChange = {
+                    mediaNotification = it
+                    app.store.showMediaNotification = it
+                    // Take effect now rather than at the next track change.
+                    scope.launch { app.client.requestFullState() }
+                },
+            )
+        }
+    }
+
     SectionCard(stringResource(R.string.settings_prefer_bluetooth)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp),

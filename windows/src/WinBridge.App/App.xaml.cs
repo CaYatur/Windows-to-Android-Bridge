@@ -74,6 +74,15 @@ public partial class App : System.Windows.Application
             Diagnostics.Log.Write("could not start", ex);
         }
 
+        // --pair opens the pairing window straight away, for a shortcut or a
+        // script. It shows the same window the tray menu does; the key still
+        // only ever appears on screen.
+        if (e.Args.Contains("--pair"))
+        {
+            ShowPairing();
+            return;
+        }
+
         // The one time we surface ourselves uninvited is right after install,
         // so the user knows where the app went.
         if (!Store.Settings.FirstRunDone)

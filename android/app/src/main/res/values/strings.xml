@@ -102,4 +102,8 @@
     <string name="widget_combined">WinBridge overview</string>
     <string name="widget_power">WinBridge power</string>
     <string name="widget_offline">Not connected</string>
+    <string name="notification_channel_media">Now playing</string>
+    <string name="notification_channel_media_desc">Shows what your PC is playing, with controls</string>
+    <string name="settings_media_notification">Show on lock screen and in notifications</string>
+    <string name="settings_media_notification_hint">Music playing on your PC appears on this phone as if it were playing here, with controls on the lock screen.</string>
 </resources>

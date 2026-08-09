@@ -77,27 +77,56 @@ public sealed class TcpCarrier(int port) : ICarrier
         }
     }
 
-    /// <summary>Addresses a phone on the same network could reach us at.</summary>
+    /// <summary>
+    /// Addresses a phone on the same network could actually reach us at.
+    ///
+    /// Machines with Hyper-V, WSL, VirtualBox or a VPN carry extra adapters
+    /// whose addresses look perfectly valid and are unreachable from anywhere
+    /// else. Handing those to the phone costs a connection timeout per address
+    /// before it gets to a real one, so they are filtered here rather than
+    /// discovered the slow way at runtime.
+    ///
+    /// The test is whether the interface has a default gateway: the interface
+    /// that can reach the phone is, by definition, one that can reach off the
+    /// machine. Virtual switches have none.
+    /// </summary>
     public static List<string> LocalAddresses()
     {
-        var result = new List<string>();
+        var routable = new List<string>();
+        var fallback = new List<string>();
+
         try
         {
             foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
-                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
 
-                foreach (var addr in nic.GetIPProperties().UnicastAddresses)
+                var type = nic.NetworkInterfaceType;
+                if (type is System.Net.NetworkInformation.NetworkInterfaceType.Loopback
+                         or System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)
+                    continue;
+
+                var properties = nic.GetIPProperties();
+                bool hasGateway = properties.GatewayAddresses
+                    .Any(g => g.Address is not null &&
+                              g.Address.AddressFamily == AddressFamily.InterNetwork &&
+                              !g.Address.Equals(IPAddress.Any));
+
+                foreach (var addr in properties.UnicastAddresses)
                 {
                     if (addr.Address.AddressFamily != AddressFamily.InterNetwork) continue;
                     if (IPAddress.IsLoopback(addr.Address)) continue;
-                    result.Add(addr.Address.ToString());
+
+                    var text = addr.Address.ToString();
+                    if (hasGateway) routable.Add(text); else fallback.Add(text);
                 }
             }
         }
         catch { }
-        return result;
+
+        // If nothing has a gateway we are probably on an isolated network the
+        // phone shares, so offering the rest is better than offering nothing.
+        return routable.Count > 0 ? routable : fallback;
     }
 
     /// <summary>

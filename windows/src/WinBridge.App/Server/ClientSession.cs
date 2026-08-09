@@ -226,26 +226,44 @@ public sealed class ClientSession(
         int rate = Rate("media");
         if (rate < 0) return;
 
-        bool timeElapsed = rate > 0 && (DateTime.UtcNow - _lastMediaPush).TotalMilliseconds >= rate;
+        // Even with rate 0 ("on change only"), poll occasionally: it is the only
+        // way to notice a seek that GSMTC did not raise an event for.
+        bool timeElapsed = (DateTime.UtcNow - _lastMediaPush).TotalMilliseconds >=
+            (rate > 0 ? rate : PositionPollMs);
         if (!force && !_mediaDirty && !timeElapsed) return;
 
         _mediaDirty = false;
+        var previousPush = _lastMediaPush;
         _lastMediaPush = DateTime.UtcNow;
 
         var state = await media.ReadAsync();
 
-        // Position advances on its own; resending an otherwise identical state
-        // every tick would waste an RFCOMM round trip for nothing.
-        if (!force && _lastMedia is not null && SameExceptPosition(_lastMedia, state)) return;
+        // The client advances the position itself between messages, so resending
+        // an otherwise identical state every tick would waste a round trip --
+        // over RFCOMM that matters. But suppressing *all* position-only updates
+        // means a seek on the PC never reaches the phone, so the comparison is
+        // against where the client would have predicted the position to be:
+        // ordinary playback drifts by milliseconds, a seek by seconds.
+        if (!force && _lastMedia is not null && SameTrack(_lastMedia, state))
+        {
+            double predicted = _lastMedia.PosMs +
+                (state.Playing ? (DateTime.UtcNow - previousPush).TotalMilliseconds : 0);
+
+            if (Math.Abs(predicted - state.PosMs) < PositionResyncToleranceMs) return;
+        }
 
         _lastMedia = state;
         await session.SendJsonAsync(state, ct);
     }
 
-    private static bool SameExceptPosition(MediaState a, MediaState b) =>
+    /// <summary>Everything except where the playhead is.</summary>
+    private static bool SameTrack(MediaState a, MediaState b) =>
         a.Title == b.Title && a.Artist == b.Artist && a.Album == b.Album &&
         a.Playing == b.Playing && a.ArtHash == b.ArtHash && a.AppId == b.AppId &&
         a.CanNext == b.CanNext && a.CanPrev == b.CanPrev;
+
+    private const double PositionResyncToleranceMs = 1500;
+    private const double PositionPollMs = 2000;
 
     private async Task PushVolumeAsync(CancellationToken ct, bool force = false)
     {
