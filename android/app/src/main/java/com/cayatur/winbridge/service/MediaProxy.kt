@@ -158,8 +158,18 @@ class MediaProxy(
         }
     }
 
+    /**
+     * Targets our registered receiver explicitly. The single-argument overload
+     * looks for a *service* handling ACTION_MEDIA_BUTTON and returns null when
+     * there is none -- and a null PendingIntent still renders a button, it just
+     * does nothing when tapped.
+     */
     private fun mediaAction(action: Long): PendingIntent =
-        MediaButtonReceiver.buildMediaButtonPendingIntent(context, action)
+        MediaButtonReceiver.buildMediaButtonPendingIntent(
+            context,
+            android.content.ComponentName(context, MediaButtonReceiver::class.java),
+            action,
+        )
 
     fun clear() {
         if (showing) {

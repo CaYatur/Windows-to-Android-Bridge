@@ -13,6 +13,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -98,28 +99,16 @@ private fun MetricRow(label: String, value: String, fraction: Float, level: Bool
                 ),
             )
         }
-        // Glance has no progress bar, so the bar is two coloured boxes.
-        Row(GlanceModifier.fillMaxWidth().height(4.dp).padding(top = 2.dp)) {
-            val filled = fraction.coerceIn(0f, 1f)
-            if (filled > 0f) {
-                Spacer(
-                    GlanceModifier
-                        .defaultWeight()
-                        .height(4.dp)
-                        .cornerRadius(2.dp)
-                        .background(barColor(filled, level, charging)),
-                )
-            }
-            if (filled < 1f) {
-                Spacer(
-                    GlanceModifier
-                        .defaultWeight()
-                        .height(4.dp)
-                        .cornerRadius(2.dp)
-                        .background(GlanceTheme.colors.surfaceVariant),
-                )
-            }
-        }
+        // Glance's own progress indicator, not two weighted spacers: weights in
+        // Glance map to LinearLayout weight=1 each, so a hand-rolled bar splits
+        // 50/50 regardless of the value and every metric looks half full.
+        val filled = fraction.coerceIn(0f, 1f)
+        LinearProgressIndicator(
+            progress = filled,
+            modifier = GlanceModifier.fillMaxWidth().height(4.dp).padding(top = 2.dp),
+            color = barColor(filled, level, charging),
+            backgroundColor = GlanceTheme.colors.surfaceVariant,
+        )
     }
 }
 
