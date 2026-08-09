@@ -100,9 +100,22 @@ np_c2s   = HKDF-Expand(prk, "winbridge/v1/nonce/c2s",  4)
 np_s2c   = HKDF-Expand(prk, "winbridge/v1/nonce/s2c",  4)
 k_cfm    = HKDF-Expand(prk, "winbridge/v1/confirm",   32)
 
-transcript = SHA-256( helloBytes || helloAckBytesWithConfirmFieldOmitted )
 confirmS   = HMAC-SHA256(k_cfm, "server" || transcript)
 confirmC   = HMAC-SHA256(k_cfm, "client" || transcript)
+```
+
+The transcript is defined over canonical, length-prefixed components rather than
+raw JSON bytes, so that two independent implementations cannot disagree about
+serialization details (key order, whitespace, escaping):
+
+```
+chunk(x)   = len(x) as u16 big-endian || x
+
+transcript = SHA-256(
+    chunk("winbridge/v1")   ||
+    chunk(deviceIdClient)   || chunk(ephPubClient) || chunk(nonceClient) ||
+    chunk(deviceIdServer)   || chunk(ephPubServer) || chunk(nonceServer)
+)
 ```
 
 ### 2.3 Sequence
