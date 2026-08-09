@@ -73,7 +73,7 @@ public sealed class ClientSession(
     {
         Name = Environment.MachineName,
         Os = Environment.OSVersion.VersionString,
-        UptimeSec = (long)(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency),
+        UptimeSec = Environment.TickCount64 / 1000,
         Caps = power.Caps,
     };
 

@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 rootProject.name = "WinBridge"
 
 include(":app")
+include(":core:protocol")

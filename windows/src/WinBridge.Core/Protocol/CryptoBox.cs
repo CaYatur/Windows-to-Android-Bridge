@@ -38,19 +38,24 @@ public sealed class CryptoBox : IDisposable
         ConfirmPeer = confirmPeer;
     }
 
-    /// <summary>Derives the session from a completed key exchange.</summary>
-    /// <param name="isServer">
-    /// Determines key direction. Both sides derive the same four secrets; the
-    /// server sends with s2c and receives with c2s, the client the other way.
-    /// </param>
-    public static CryptoBox Derive(
+    /// <summary>
+    /// Every value the key schedule produces. Exposed so that cross-language
+    /// test vectors can pin the intermediate steps: when the Kotlin side
+    /// disagrees, knowing whether it diverged at Z, at the transcript or at the
+    /// HKDF expansion is the difference between a one-line fix and an afternoon.
+    /// </summary>
+    public sealed record KeySchedule(
+        byte[] Z, byte[] KeyC2S, byte[] KeyS2C,
+        byte[] NonceC2S, byte[] NonceS2C,
+        byte[] ConfirmServer, byte[] ConfirmClient);
+
+    public static KeySchedule ComputeSchedule(
         ECDiffieHellman selfEphemeral,
         byte[] peerPublicPoint,
         byte[] nonceClient,
         byte[] nonceServer,
         byte[] psk,
-        byte[] transcript,
-        bool isServer)
+        byte[] transcript)
     {
         if (peerPublicPoint.Length != 65 || peerPublicPoint[0] != 0x04)
             throw new ProtocolException("peer public key is not an uncompressed P-256 point");
@@ -65,6 +70,9 @@ public sealed class CryptoBox : IDisposable
             },
         });
 
+        // Raw agreement: the X coordinate, unhashed. This is what JCA's
+        // KeyAgreement("ECDH").generateSecret() returns, so both sides match.
+        // DeriveKeyMaterial would hash it and silently diverge.
         byte[] z = selfEphemeral.DeriveRawSecretAgreement(peer.PublicKey);
 
         var salt = new byte[nonceClient.Length + nonceServer.Length];
@@ -76,7 +84,6 @@ public sealed class CryptoBox : IDisposable
         psk.CopyTo(ikm, z.Length);
 
         byte[] prk = HKDF.Extract(HashAlgorithmName.SHA256, ikm, salt);
-        CryptographicOperations.ZeroMemory(z);
         CryptographicOperations.ZeroMemory(ikm);
 
         byte[] kC2S = Expand(prk, "winbridge/v1/key/c2s", 32);
@@ -90,9 +97,29 @@ public sealed class CryptoBox : IDisposable
         byte[] confirmClient = Confirm(kCfm, "client", transcript);
         CryptographicOperations.ZeroMemory(kCfm);
 
+        return new KeySchedule(z, kC2S, kS2C, nC2S, nS2C, confirmServer, confirmClient);
+    }
+
+    /// <summary>Derives the session from a completed key exchange.</summary>
+    /// <param name="isServer">
+    /// Determines key direction. Both sides derive the same four secrets; the
+    /// server sends with s2c and receives with c2s, the client the other way.
+    /// </param>
+    public static CryptoBox Derive(
+        ECDiffieHellman selfEphemeral,
+        byte[] peerPublicPoint,
+        byte[] nonceClient,
+        byte[] nonceServer,
+        byte[] psk,
+        byte[] transcript,
+        bool isServer)
+    {
+        var s = ComputeSchedule(selfEphemeral, peerPublicPoint, nonceClient, nonceServer, psk, transcript);
+        CryptographicOperations.ZeroMemory(s.Z);
+
         return isServer
-            ? new CryptoBox(kS2C, kC2S, nS2C, nC2S, confirmServer, confirmClient)
-            : new CryptoBox(kC2S, kS2C, nC2S, nS2C, confirmClient, confirmServer);
+            ? new CryptoBox(s.KeyS2C, s.KeyC2S, s.NonceS2C, s.NonceC2S, s.ConfirmServer, s.ConfirmClient)
+            : new CryptoBox(s.KeyC2S, s.KeyS2C, s.NonceC2S, s.NonceS2C, s.ConfirmClient, s.ConfirmServer);
     }
 
     private static byte[] Expand(byte[] prk, string info, int length) =>

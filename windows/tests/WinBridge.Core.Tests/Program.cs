@@ -5,6 +5,49 @@
 using System.Net;
 using System.Net.Sockets;
 using WinBridge.Core.Protocol;
+using WinBridge.Core.Tests;
+
+var argv = Environment.GetCommandLineArgs();
+
+// Generates the cross-language known-answer vectors consumed by the Kotlin
+// unit tests.
+if (argv.Contains("--vectors"))
+{
+    int at = Array.IndexOf(argv, "--vectors");
+    string output = at + 1 < argv.Length && !argv[at + 1].StartsWith('-')
+        ? Path.GetFullPath(argv[at + 1])
+        : Path.Combine(FindRepoRoot(),
+            "android", "core", "protocol", "src", "test", "resources", "protocol-vectors.json");
+    Vectors.Emit(output);
+    return 0;
+
+    // Walk up for the directory that holds both halves of the project, rather
+    // than counting "../" from wherever the runner happened to start.
+    static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            if (Directory.Exists(Path.Combine(dir.FullName, "android")) &&
+                Directory.Exists(Path.Combine(dir.FullName, "windows")))
+                return dir.FullName;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException("could not locate the repository root");
+    }
+}
+
+// A bare protocol server with no providers, no tray and verbose logging, for
+// bringing up the Kotlin client. Pair it with `adb reverse tcp:8737 tcp:8737`
+// so the phone reaches it over USB and the network is out of the picture.
+if (argv.Contains("--serve"))
+{
+    int at = Array.IndexOf(argv, "--serve");
+    int port = at + 1 < argv.Length && int.TryParse(argv[at + 1], out int p) ? p : 8737;
+    string pskArg = at + 2 < argv.Length ? argv[at + 2] : DebugServer.DefaultPskBase64;
+    await DebugServer.RunAsync(port, pskArg);
+    return 0;
+}
 
 int failures = 0;
 

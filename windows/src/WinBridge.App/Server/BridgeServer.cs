@@ -118,7 +118,6 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
         _ = Task.Run(async () =>
         {
             await Task.Delay(PairingService.Window + TimeSpan.FromSeconds(1));
-            if (Pairing.IsOpen) return;
             Pairing.Close();
         });
 

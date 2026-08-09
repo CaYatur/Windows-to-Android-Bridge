@@ -25,6 +25,13 @@ public sealed class MediaProvider : IAsyncDisposable
     private readonly Dictionary<string, byte[]> _artCache = new();
     private readonly Lock _artGate = new();
 
+    // Art is rendered per *track*, not per read. GSMTC raises a change event on
+    // every position update, so keying this on anything finer would re-decode,
+    // re-scale, re-encode and re-hash the cover several times a second for a
+    // picture that has not changed.
+    private string? _artTrackKey;
+    private string? _artHashForTrack;
+
     /// <summary>Raised when anything about the current media changed.</summary>
     public event Action? Changed;
 
@@ -79,15 +86,28 @@ public sealed class MediaProvider : IAsyncDisposable
             var timeline = session.GetTimelineProperties();
             var props = await session.TryGetMediaPropertiesAsync();
 
-            string? artHash = null;
-            if (props?.Thumbnail is not null)
+            string trackKey = string.Join('',
+                session.SourceAppUserModelId, props?.Title, props?.Artist, props?.AlbumTitle);
+
+            string? artHash;
+            if (trackKey == _artTrackKey)
             {
-                byte[]? jpeg = await RenderThumbnailAsync(props.Thumbnail);
-                if (jpeg is not null)
+                artHash = _artHashForTrack;
+            }
+            else
+            {
+                artHash = null;
+                if (props?.Thumbnail is not null)
                 {
-                    artHash = Convert.ToHexString(SHA256.HashData(jpeg))[..32].ToLowerInvariant();
-                    lock (_artGate) _artCache[artHash] = jpeg;
+                    byte[]? jpeg = await RenderThumbnailAsync(props.Thumbnail);
+                    if (jpeg is not null)
+                    {
+                        artHash = Convert.ToHexString(SHA256.HashData(jpeg))[..32].ToLowerInvariant();
+                        lock (_artGate) _artCache[artHash] = jpeg;
+                    }
                 }
+                _artTrackKey = trackKey;
+                _artHashForTrack = artHash;
             }
 
             return new MediaState
