@@ -53,6 +53,17 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
+        <!-- Receives commands sent from the watch. The watch never talks to
+             the PC directly; the phone relays. -->
+        <service
+            android:name=".wear.WearCommandService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/winbridge" />
+            </intent-filter>
+        </service>
+
         <!-- Routes lock screen and headset transport buttons into the media
              session, which is what makes the controls actually work. -->
         <receiver

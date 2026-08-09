@@ -1,5 +1,3 @@
-// Imported rather than fully qualified: inside the `android { }` scope, `java`
-// resolves to the Java plugin extension and not the package.
 import java.util.Properties
 
 plugins {
@@ -10,22 +8,22 @@ plugins {
 }
 
 android {
-    namespace = "com.cayatur.winbridge"
+    namespace = "com.cayatur.winbridge.wear"
     compileSdk = 36
 
     defaultConfig {
+        // Same applicationId as the phone app on purpose: that is how Android
+        // pairs a watch app with its handheld counterpart.
         applicationId = "com.cayatur.winbridge"
-        minSdk = 26
-        targetSdk = 36
+        minSdk = 30
+        targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
-        // English is the base; anything without its own values-XX falls back to it.
         resourceConfigurations += setOf("en", "tr")
     }
 
-    // Release builds are signed with the shared keystore when one is configured.
-    // The phone and watch APKs must use the same key or the Wearable Data Layer
-    // refuses to connect them.
+    // The watch APK must be signed with the same key as the phone APK, or the
+    // Wearable Data Layer will not deliver messages between them.
     val keystoreProperties = rootProject.file("keystore.properties")
     signingConfigs {
         if (keystoreProperties.exists()) {
@@ -43,9 +41,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = false
             if (keystoreProperties.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -65,7 +61,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging {
@@ -74,35 +69,29 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:protocol"))
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
-    implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.compose.material3)
-    implementation(libs.compose.material.icons.extended)
+    implementation(libs.compose.foundation)
 
-    implementation(libs.androidx.media)
+    implementation(libs.wear.compose.material)
+    implementation(libs.wear.compose.foundation)
+    implementation(libs.wear.tiles)
+    implementation(libs.wear.protolayout)
+    implementation(libs.wear.protolayout.material)
+    implementation(libs.wear.protolayout.expression)
+    // Tiles return ListenableFuture, which is Guava's type.
+    implementation(libs.guava)
+
     implementation(libs.play.services.wearable)
-
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
-
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
 
-    implementation(libs.zxing.core)
-    implementation(libs.camera.core)
-    implementation(libs.camera.camera2)
-    implementation(libs.camera.lifecycle)
-    implementation(libs.camera.view)
-
-    debugImplementation(libs.compose.ui.tooling)
+    implementation(project(":core:protocol"))
 }

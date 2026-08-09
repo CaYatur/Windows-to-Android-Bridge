@@ -24,3 +24,4 @@ rootProject.name = "WinBridge"
 
 include(":app")
 include(":core:protocol")
+include(":wear")

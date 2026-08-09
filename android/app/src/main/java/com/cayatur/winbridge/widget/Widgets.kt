@@ -33,7 +33,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
-import kotlinx.coroutines.runBlocking
+import com.cayatur.winbridge.protocol.StateSnapshot
 
 // ---------------------------------------------------------------------------
 // Shared pieces
@@ -84,7 +84,7 @@ private fun OfflineNotice(context: Context) {
 }
 
 @Composable
-private fun MetricRow(label: String, value: String, fraction: Float) {
+private fun MetricRow(label: String, value: String, fraction: Float, level: Boolean = false, charging: Boolean = false) {
     Column(GlanceModifier.fillMaxWidth().padding(top = 6.dp)) {
         Row(GlanceModifier.fillMaxWidth()) {
             Text(label, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 12.sp))
@@ -107,7 +107,7 @@ private fun MetricRow(label: String, value: String, fraction: Float) {
                         .defaultWeight()
                         .height(4.dp)
                         .cornerRadius(2.dp)
-                        .background(barColor(filled)),
+                        .background(barColor(filled, level, charging)),
                 )
             }
             if (filled < 1f) {
@@ -123,18 +123,32 @@ private fun MetricRow(label: String, value: String, fraction: Float) {
     }
 }
 
-private fun barColor(fraction: Float): androidx.glance.unit.ColorProvider =
-    androidx.glance.unit.ColorProvider(
-        when {
-            fraction >= 0.9f -> Color(0xFFE5484D)
-            fraction >= 0.7f -> Color(0xFFD29922)
+private fun barColor(
+    fraction: Float,
+    level: Boolean,
+    charging: Boolean,
+): androidx.glance.unit.ColorProvider = androidx.glance.unit.ColorProvider(
+    when {
+        // A charging or well-charged battery is reassuring, not a warning.
+        charging -> Color(0xFF3FB950)
+        level -> when {
+            fraction <= 0.10f -> Color(0xFFE5484D)
+            fraction <= 0.25f -> Color(0xFFD29922)
+            fraction >= 0.80f -> Color(0xFF3FB950)
             else -> Color(0xFF6E56CF)
-        },
-    )
+        }
+        fraction >= 0.9f -> Color(0xFFE5484D)
+        fraction >= 0.7f -> Color(0xFFD29922)
+        else -> Color(0xFF6E56CF)
+    },
+)
 
 @Composable
-private fun MediaBlock(context: Context, snapshot: WidgetSnapshot, compact: Boolean) {
-    if (snapshot.title.isNullOrBlank()) {
+private fun MediaBlock(context: Context, snapshot: StateSnapshot, compact: Boolean) {
+    // Bound to a local: title comes from another module, so Kotlin will not
+    // smart-cast it after the null check.
+    val title = snapshot.title
+    if (title.isNullOrBlank()) {
         Text(
             context.getString(R.string.media_nothing),
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
@@ -143,7 +157,7 @@ private fun MediaBlock(context: Context, snapshot: WidgetSnapshot, compact: Bool
     }
 
     Text(
-        snapshot.title,
+        title,
         maxLines = 1,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
@@ -183,7 +197,7 @@ private fun TransportButton(glyph: String, command: String) {
 }
 
 @Composable
-private fun SystemBlock(context: Context, snapshot: WidgetSnapshot) {
+private fun SystemBlock(context: Context, snapshot: StateSnapshot) {
     MetricRow(context.getString(R.string.system_cpu), "${snapshot.cpu}%", snapshot.cpu / 100f)
     MetricRow(context.getString(R.string.system_gpu), "${snapshot.gpu}%", snapshot.gpu / 100f)
 
@@ -201,12 +215,14 @@ private fun SystemBlock(context: Context, snapshot: WidgetSnapshot) {
             context.getString(R.string.system_battery),
             "${snapshot.batteryPct}%$suffix",
             snapshot.batteryPct / 100f,
+            level = true,
+            charging = snapshot.batteryCharging,
         )
     }
 }
 
 @Composable
-private fun HostHeader(snapshot: WidgetSnapshot) {
+private fun HostHeader(snapshot: StateSnapshot) {
     Row(GlanceModifier.fillMaxWidth()) {
         Text(
             snapshot.hostName ?: "WinBridge",

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WinBridge</string>
+    <string name="wear_offline">Bağlı değil</string>
+    <string name="wear_nothing_playing">Bir şey çalmıyor</string>
+    <string name="wear_cpu">İşlemci</string>
+    <string name="wear_gpu">Ekran kartı</string>
+    <string name="wear_ram">Bellek</string>
+    <string name="wear_battery">Pil</string>
+    <string name="wear_lock">Bilgisayarı kilitle</string>
+    <string name="wear_display_off">Ekranı kapat</string>
+</resources>

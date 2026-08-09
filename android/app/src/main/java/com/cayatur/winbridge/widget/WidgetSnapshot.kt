@@ -5,74 +5,42 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
 import com.cayatur.winbridge.net.BridgeState
 import com.cayatur.winbridge.net.ConnectionPhase
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import com.cayatur.winbridge.protocol.StateSnapshot
+import com.cayatur.winbridge.wear.WearPublisher
 
 /**
- * What the widgets draw.
+ * Persists the glanceable state and repaints everything that renders it.
  *
- * Widgets are rendered by the launcher, potentially long after our process was
- * last alive, so they cannot read a StateFlow. A compact snapshot is written to
- * preferences whenever something changes and read back synchronously at render
- * time — which also means a widget shows the last known values instead of going
- * blank when the connection drops.
+ * Widgets are drawn by the launcher, potentially long after our process was
+ * last alive, so they cannot read a StateFlow. A snapshot is written to
+ * preferences on every change and read back synchronously at render time —
+ * which also means a widget shows the last known values instead of going blank
+ * when the connection drops.
  */
-@Serializable
-data class WidgetSnapshot(
-    val connected: Boolean = false,
-    val hostName: String? = null,
-    val carrier: String? = null,
-
-    val title: String? = null,
-    val artist: String? = null,
-    val playing: Boolean = false,
-    val artHash: String? = null,
-
-    val cpu: Int = 0,
-    val gpu: Int = 0,
-    val ramUsedMb: Long = 0,
-    val ramTotalMb: Long = 0,
-    val netDownBps: Long = 0,
-    val netUpBps: Long = 0,
-
-    val batteryPresent: Boolean = false,
-    val batteryPct: Int = 0,
-    val batteryCharging: Boolean = false,
-    val batteryStatus: String = "unknown",
-
-    val volume: Int = 0,
-    val muted: Boolean = false,
-
-    val updatedAt: Long = 0,
-)
-
 object WidgetRepository {
 
     private const val PREFS = "winbridge.widget"
     private const val KEY = "snapshot"
-    private val json = Json { ignoreUnknownKeys = true }
 
-    fun read(context: Context): WidgetSnapshot {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
-            ?: return WidgetSnapshot()
-        return runCatching { json.decodeFromString<WidgetSnapshot>(raw) }.getOrDefault(WidgetSnapshot())
-    }
+    fun read(context: Context): StateSnapshot =
+        StateSnapshot.decode(
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null),
+        )
 
-    private fun write(context: Context, snapshot: WidgetSnapshot) {
+    private fun write(context: Context, snapshot: StateSnapshot) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY, json.encodeToString(snapshot))
+            .putString(KEY, StateSnapshot.encode(snapshot))
             .apply()
     }
 
-    fun snapshotOf(state: BridgeState): WidgetSnapshot {
+    fun snapshotOf(state: BridgeState): StateSnapshot {
         val connection = state.connection.value
         val media = state.media.value
         val system = state.system.value
         val volume = state.volume.value
 
-        return WidgetSnapshot(
+        return StateSnapshot(
             connected = connection.phase == ConnectionPhase.CONNECTED,
             hostName = connection.hostName,
             carrier = connection.carrier?.name?.lowercase(),
@@ -80,6 +48,10 @@ object WidgetRepository {
             artist = media?.artist,
             playing = media?.playing ?: false,
             artHash = media?.artHash,
+            posMs = media?.posMs ?: 0,
+            durMs = media?.durMs ?: 0,
+            canNext = media?.canNext ?: false,
+            canPrev = media?.canPrev ?: false,
             cpu = system?.cpu?.toInt() ?: 0,
             gpu = system?.gpu?.firstOrNull()?.pct?.toInt() ?: 0,
             ramUsedMb = system?.ram?.usedMb ?: 0,
@@ -96,15 +68,19 @@ object WidgetRepository {
         )
     }
 
-    /** Persists and repaints. Cheap enough to call on every state change. */
+    /** Persists, repaints the widgets, and forwards to a paired watch. */
     suspend fun publish(context: Context, state: BridgeState) {
-        write(context, snapshotOf(state))
+        val snapshot = snapshotOf(state)
+        write(context, snapshot)
+
         runCatching {
             MediaWidget().updateAll(context)
             SystemWidget().updateAll(context)
             CombinedWidget().updateAll(context)
             PowerWidget().updateAll(context)
         }
+
+        WearPublisher.publish(context, state, snapshot)
     }
 
     /** True when at least one widget is on a home screen. */
