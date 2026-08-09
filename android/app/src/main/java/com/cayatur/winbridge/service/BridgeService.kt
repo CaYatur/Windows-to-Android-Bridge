@@ -23,6 +23,8 @@ import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
 import com.cayatur.winbridge.net.ConnectionPhase
 import com.cayatur.winbridge.net.TAG
+import com.cayatur.winbridge.widget.WidgetRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -64,6 +66,23 @@ class BridgeService : Service() {
                     ConnectionPhase.DISCONNECTED -> getString(R.string.status_disconnected)
                 }
                 notificationManager().notify(NOTIFICATION_ID, buildNotification(text))
+                WidgetRepository.publish(this@BridgeService, app.state)
+            }
+        }
+
+        // Media changes are worth repainting immediately; system metrics are
+        // not — the launcher throttles widget updates anyway, and redrawing a
+        // widget once a second to move a CPU bar nobody is looking at is a
+        // straightforward way to drain a battery.
+        app.scope.launch {
+            app.state.media.collectLatest { WidgetRepository.publish(this@BridgeService, app.state) }
+        }
+        app.scope.launch {
+            while (true) {
+                delay(WIDGET_REFRESH_MS)
+                if (WidgetRepository.anyPlaced(this@BridgeService)) {
+                    WidgetRepository.publish(this@BridgeService, app.state)
+                }
             }
         }
     }
@@ -159,6 +178,7 @@ class BridgeService : Service() {
     companion object {
         private const val CHANNEL_ID = "winbridge.link"
         private const val NOTIFICATION_ID = 1
+        private const val WIDGET_REFRESH_MS = 30_000L
 
         fun start(context: Context) {
             val intent = Intent(context, BridgeService::class.java)

@@ -61,6 +61,55 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- Four separate widgets so they can be placed individually or together -->
+        <receiver
+            android:name=".widget.MediaWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_media">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_media" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.SystemWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_system">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_system" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.CombinedWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_combined">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_combined" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.PowerWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_power">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_power" />
+        </receiver>
     </application>
 
 </manifest>
