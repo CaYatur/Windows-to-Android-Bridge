@@ -7,7 +7,7 @@ work.
 
 🇹🇷 [Türkçe README](README.tr.md)
 
-> **Status:** [v0.1.0 is released](../../releases/latest). Everything below is
+> **Status:** [v0.1.1 is released](../../releases/latest). Everything below is
 > implemented and was exercised on a physical PC, phone and watch.
 
 ---

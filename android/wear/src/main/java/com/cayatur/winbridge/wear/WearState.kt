@@ -9,9 +9,14 @@ import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 const val WEAR_TAG = "WinBridgeWear"
@@ -57,8 +62,10 @@ object WearState {
             val items = Wearable.getDataClient(context).dataItems.await()
             items.forEach { item ->
                 if (item.uri.path == WearPaths.STATE) {
-                    val text = DataMapItem.fromDataItem(item).dataMap.getString(WearPaths.STATE_KEY)
+                    val dataMap = DataMapItem.fromDataItem(item).dataMap
+                    val text = dataMap.getString(WearPaths.STATE_KEY)
                     store(context, StateSnapshot.decode(text))
+                    WearArtwork.updateFromAsset(context, dataMap.getAsset(WearArtwork.DATA_KEY))
                 }
             }
             items.release()
@@ -84,20 +91,30 @@ object WearState {
 
 /** Receives state pushed by the phone, including while the app is closed. */
 class WearStateService : WearableListenerService() {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onDataChanged(events: DataEventBuffer) {
         events.forEach { event ->
             if (event.type != DataEvent.TYPE_CHANGED) return@forEach
             if (event.dataItem.uri.path != WearPaths.STATE) return@forEach
 
-            val text = DataMapItem.fromDataItem(event.dataItem)
-                .dataMap.getString(WearPaths.STATE_KEY)
-            WearState.store(applicationContext, StateSnapshot.decode(text))
+            val dataMap = DataMapItem.fromDataItem(event.dataItem).dataMap
+            WearState.store(applicationContext, StateSnapshot.decode(dataMap.getString(WearPaths.STATE_KEY)))
 
-            // Repaint the tile so the carousel is not showing stale numbers.
-            runCatching {
-                androidx.wear.tiles.TileService.getUpdater(applicationContext)
-                    .requestUpdate(WinBridgeTileService::class.java)
+            scope.launch {
+                WearArtwork.updateFromAsset(applicationContext, dataMap.getAsset(WearArtwork.DATA_KEY))
+                runCatching {
+                    androidx.wear.tiles.TileService.getUpdater(applicationContext)
+                        .requestUpdate(WinBridgeTileService::class.java)
+                    androidx.wear.tiles.TileService.getUpdater(applicationContext)
+                        .requestUpdate(MediaTileService::class.java)
+                }
             }
         }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 }

@@ -44,7 +44,7 @@
         <service
             android:name=".WinBridgeTileService"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="@string/wear_system_tile"
             android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
             <intent-filter>
                 <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
@@ -54,6 +54,27 @@
                 android:resource="@drawable/tile_preview"
                 tools:ignore="MissingTileProviderPreview" />
         </service>
+
+        <service
+            android:name=".MediaTileService"
+            android:exported="true"
+            android:label="@string/wear_media_tile"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/media_tile_preview"
+                tools:ignore="MissingTileProviderPreview" />
+        </service>
+
+        <activity
+            android:name=".TileCommandActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
     </application>
 
 </manifest>

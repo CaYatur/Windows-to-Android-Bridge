@@ -259,6 +259,6 @@ class BridgeClient(
         const val DEAD_AFTER_MS = 15_000L
         const val BASE_BACKOFF_MS = 1_000L
         const val MAX_BACKOFF_MS = 60_000L
-        const val WIDGET_RATE_MS = 30_000
+        const val WIDGET_RATE_MS = 5_000
     }
 }

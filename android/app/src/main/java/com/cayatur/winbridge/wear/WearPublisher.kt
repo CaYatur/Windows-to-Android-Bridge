@@ -7,6 +7,7 @@ import com.cayatur.winbridge.net.BridgeState
 import com.cayatur.winbridge.net.TAG
 import com.cayatur.winbridge.protocol.StateSnapshot
 import com.cayatur.winbridge.protocol.WearPaths
+import com.google.android.gms.wearable.Asset
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -32,6 +33,13 @@ object WearPublisher {
         runCatching {
             val request = PutDataMapRequest.create(WearPaths.STATE).apply {
                 dataMap.putString(WearPaths.STATE_KEY, StateSnapshot.encode(snapshot))
+                snapshot.artHash?.let { hash ->
+                    state.loadArt(hash)?.let { bitmap ->
+                        val stream = java.io.ByteArrayOutputStream()
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, stream)
+                        dataMap.putAsset("artwork", Asset.createFromBytes(stream.toByteArray()))
+                    }
+                }
                 // Data items are deduplicated by content; without something that
                 // always changes, an identical snapshot would not resync.
                 dataMap.putLong("ts", System.currentTimeMillis())

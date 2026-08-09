@@ -44,7 +44,7 @@ fun MainScreen(onPair: () -> Unit) {
     // rate when this leaves composition.
     DisposableEffect(Unit) {
         scope.launch { app.client.setSystemRate(1000) }
-        onDispose { scope.launch { app.client.setSystemRate(30_000) } }
+        onDispose { scope.launch { app.client.setSystemRate(5_000) } }
     }
 
     val snackbar = remember { SnackbarHostState() }

@@ -98,9 +98,12 @@ class BridgeService : Service() {
         // refreshed when it arrives rather than showing a blank cover.
         app.scope.launch(Dispatchers.Main) {
             app.state.art.collectLatest { entry ->
-                if (entry == null || !app.store.showMediaNotification) return@collectLatest
+                if (entry == null) return@collectLatest
                 val media = app.state.media.value ?: return@collectLatest
-                if (media.artHash == entry.first) mediaProxy.update(media, entry.second)
+                if (media.artHash == entry.first) {
+                    WidgetRepository.publish(this@BridgeService, app.state)
+                    if (app.store.showMediaNotification) mediaProxy.update(media, entry.second)
+                }
             }
         }
         app.scope.launch {
@@ -205,7 +208,7 @@ class BridgeService : Service() {
     companion object {
         private const val CHANNEL_ID = "winbridge.link"
         private const val NOTIFICATION_ID = 1
-        private const val WIDGET_REFRESH_MS = 30_000L
+        private const val WIDGET_REFRESH_MS = 5_000L
 
         fun start(context: Context) {
             val intent = Intent(context, BridgeService::class.java)

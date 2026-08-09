@@ -7,7 +7,7 @@ ikisi de çalışsın.
 
 🇬🇧 [English README](README.md)
 
-> **Durum:** [v0.1.0 yayınlandı](../../releases/latest). Aşağıdakilerin tamamı
+> **Durum:** [v0.1.1 yayınlandı](../../releases/latest). Aşağıdakilerin tamamı
 > gerçek bilgisayar, telefon ve saatte denenmiştir.
 
 ---

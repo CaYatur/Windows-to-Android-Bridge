@@ -3,10 +3,16 @@
     <string name="app_name">WinBridge</string>
     <string name="wear_offline">Not connected</string>
     <string name="wear_nothing_playing">Nothing playing</string>
+    <string name="wear_playing">Playing</string>
+    <string name="wear_paused">Paused</string>
+    <string name="wear_watch_control">Watch control active</string>
     <string name="wear_cpu">CPU</string>
     <string name="wear_gpu">GPU</string>
     <string name="wear_ram">Memory</string>
     <string name="wear_battery">Battery</string>
+    <string name="wear_charging">Charging</string>
     <string name="wear_lock">Lock PC</string>
     <string name="wear_display_off">Turn off display</string>
+    <string name="wear_media_tile">Media</string>
+    <string name="wear_system_tile">PC status</string>
 </resources>

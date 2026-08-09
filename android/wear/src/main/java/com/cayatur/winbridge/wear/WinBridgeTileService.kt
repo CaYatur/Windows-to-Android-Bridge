@@ -40,20 +40,25 @@ class WinBridgeTileService : TileService() {
             getString(R.string.wear_offline)
         }
 
-        val primary = when {
-            !snapshot.connected -> getString(R.string.wear_offline)
-            !snapshot.title.isNullOrBlank() -> snapshot.title!!
-            else -> getString(R.string.wear_nothing_playing)
+        val primary = if (snapshot.connected) {
+            buildString {
+                append("CPU ${snapshot.cpu}%   GPU ${snapshot.gpu}%")
+                if (snapshot.ramTotalMb > 0) {
+                    append("\nRAM ${"%.1f".format(snapshot.ramUsedMb / 1024.0)} / ${"%.1f".format(snapshot.ramTotalMb / 1024.0)} GB")
+                }
+            }
+        } else {
+            getString(R.string.wear_offline)
         }
 
         val secondary = buildString {
-            append("CPU ${snapshot.cpu}%  ·  GPU ${snapshot.gpu}%")
-            if (snapshot.ramTotalMb > 0) {
-                append("  ·  RAM ${"%.1f".format(snapshot.ramUsedMb / 1024.0)}G")
-            }
             if (snapshot.batteryPresent) {
-                append("  ·  ${snapshot.batteryPct}%")
-                if (snapshot.batteryCharging) append("⚡")
+                append("BAT ${snapshot.batteryPct}%")
+                if (snapshot.batteryCharging) append(" · CHARGING")
+            }
+            if (snapshot.netDownBps > 0 || snapshot.netUpBps > 0) {
+                if (isNotEmpty()) append("   ·   ")
+                append("NET ↓${snapshot.netDownBps / 1024}K ↑${snapshot.netUpBps / 1024}K")
             }
         }
 
@@ -83,7 +88,7 @@ class WinBridgeTileService : TileService() {
         val tile = TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
             // Refreshed on data change too; this is the ceiling, not the rate.
-            .setFreshnessIntervalMillis(60_000)
+            .setFreshnessIntervalMillis(15_000)
             .setTileTimeline(
                 TimelineBuilders.Timeline.Builder()
                     .addTimelineEntry(

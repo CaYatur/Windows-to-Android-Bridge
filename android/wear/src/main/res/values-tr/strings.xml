@@ -3,10 +3,16 @@
     <string name="app_name">WinBridge</string>
     <string name="wear_offline">Bağlı değil</string>
     <string name="wear_nothing_playing">Bir şey çalmıyor</string>
+    <string name="wear_playing">Oynatılıyor</string>
+    <string name="wear_paused">Duraklatıldı</string>
+    <string name="wear_watch_control">Saat kontrolü aktif</string>
     <string name="wear_cpu">İşlemci</string>
     <string name="wear_gpu">Ekran kartı</string>
     <string name="wear_ram">Bellek</string>
     <string name="wear_battery">Pil</string>
+    <string name="wear_charging">Şarj oluyor</string>
     <string name="wear_lock">Bilgisayarı kilitle</string>
     <string name="wear_display_off">Ekranı kapat</string>
+    <string name="wear_media_tile">Medya</string>
+    <string name="wear_system_tile">PC durumu</string>
 </resources>
