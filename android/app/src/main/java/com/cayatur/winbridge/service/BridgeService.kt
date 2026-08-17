@@ -117,6 +117,9 @@ class BridgeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null && Intent.ACTION_MEDIA_BUTTON == intent.action) {
+            mediaProxy.handleMediaButtonIntent(intent)
+        }
         app.client.start()
         return START_STICKY
     }

@@ -50,8 +50,12 @@
 
         <service
             android:name=".service.BridgeService"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:exported="true"
+            android:foregroundServiceType="connectedDevice">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
 
         <!-- Receives commands sent from the watch. The watch never talks to
              the PC directly; the phone relays. -->

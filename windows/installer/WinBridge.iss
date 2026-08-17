@@ -9,7 +9,7 @@
 ; Expects a published app in ..\publish\win-x64
 
 #define AppName        "WinBridge"
-#define AppVersion     "0.1.1"
+#define AppVersion     "0.1.2"
 #define AppPublisher   "CaYatur"
 #define AppURL         "https://github.com/CaYatur/Windows-to-Android-Bridge"
 #define AppExeName     "WinBridge.exe"

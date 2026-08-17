@@ -12,7 +12,7 @@
     <RootNamespace>WinBridge.App</RootNamespace>
     <AssemblyName>WinBridge</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Product>WinBridge</Product>
     <Company>CaYatur</Company>
     <SatelliteResourceLanguages>en;tr</SatelliteResourceLanguages>

@@ -13,6 +13,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
+import androidx.media.session.MediaButtonReceiver
 import com.cayatur.winbridge.MainActivity
 import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
@@ -56,6 +57,11 @@ class MediaProxy(
                     scope.launch { WinBridgeApp.instance.client.mediaCommand("seek", pos) }
                 }
             })
+            val mediaButtonPendingIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_PLAY_PAUSE,
+            )
+            setMediaButtonReceiver(mediaButtonPendingIntent)
             isActive = true
         }
     }
@@ -159,17 +165,18 @@ class MediaProxy(
     }
 
     /**
-     * Targets our registered receiver explicitly. The single-argument overload
-     * looks for a *service* handling ACTION_MEDIA_BUTTON and returns null when
-     * there is none -- and a null PendingIntent still renders a button, it just
-     * does nothing when tapped.
+     * Builds a PendingIntent targeting BridgeService (which declares the ACTION_MEDIA_BUTTON filter).
      */
     private fun mediaAction(action: Long): PendingIntent =
         MediaButtonReceiver.buildMediaButtonPendingIntent(
             context,
-            android.content.ComponentName(context, MediaButtonReceiver::class.java),
             action,
         )
+
+    fun handleMediaButtonIntent(intent: Intent) {
+        val active = session ?: return
+        MediaButtonReceiver.handleIntent(active, intent)
+    }
 
     fun clear() {
         if (showing) {
@@ -210,5 +217,3 @@ class MediaProxy(
         const val NOTIFICATION_ID = 2
     }
 }
-
-private typealias MediaButtonReceiver = androidx.media.session.MediaButtonReceiver
