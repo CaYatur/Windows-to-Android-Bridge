@@ -16,12 +16,17 @@ import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
 import kotlinx.coroutines.launch
 
+/**
+ * Five tabs, not seven. The power actions moved into Overview — where they were
+ * already shown — rather than being given a tab of their own alongside two new
+ * ones, because a bottom bar with seven items is a bar nobody reads.
+ */
 private enum class Tab(val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     OVERVIEW(R.string.tab_overview, Icons.Filled.Dashboard),
     MEDIA(R.string.tab_media, Icons.Filled.MusicNote),
     SYSTEM(R.string.tab_system, Icons.Filled.Memory),
-    CONTROL(R.string.tab_control, Icons.Filled.PowerSettingsNew),
-    SETTINGS(R.string.tab_settings, Icons.Filled.Settings),
+    AUTOMATIONS(R.string.automations_title, Icons.Filled.Bolt),
+    MORE(R.string.tab_settings, Icons.Filled.Settings),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +34,7 @@ private enum class Tab(val labelRes: Int, val icon: androidx.compose.ui.graphics
 fun MainScreen(onPair: () -> Unit) {
     val app = WinBridgeApp.instance
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var tab by rememberSaveable { mutableStateOf(Tab.OVERVIEW) }
     var pendingPower by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -105,8 +111,22 @@ fun MainScreen(onPair: () -> Unit) {
                 }
                 Tab.MEDIA -> mediaSection()
                 Tab.SYSTEM -> systemSection()
-                Tab.CONTROL -> controlSection()
-                Tab.SETTINGS -> SettingsSection(onPair = onPair)
+                Tab.AUTOMATIONS -> AutomationsSection()
+                Tab.MORE -> {
+                    MoreSection(
+                        onOpenScreen = {
+                            context.startActivity(
+                                android.content.Intent(context, PcScreenActivity::class.java),
+                            )
+                        },
+                        onVoice = {
+                            context.startActivity(
+                                android.content.Intent(context, VoiceActivity::class.java),
+                            )
+                        },
+                    )
+                    SettingsSection(onPair = onPair)
+                }
             }
 
             Spacer(Modifier.height(24.dp))

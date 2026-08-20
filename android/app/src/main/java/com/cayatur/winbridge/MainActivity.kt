@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.cayatur.winbridge.feature.Shortcuts
+import com.cayatur.winbridge.protocol.AutoRunRequest
 import com.cayatur.winbridge.service.BridgeService
 import com.cayatur.winbridge.ui.PairingScreen
 import com.cayatur.winbridge.ui.MainScreen
@@ -34,6 +36,28 @@ class MainActivity : ComponentActivity() {
         applyDebugPairing()
         setContent { WinBridgeTheme { Root() } }
         BridgeService.start(this)
+        runRequestedAutomation(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        runRequestedAutomation(intent)
+    }
+
+    /**
+     * Handles a launcher shortcut for an automation.
+     *
+     * Shortcuts are how an assistant routine reaches this app: there is no API
+     * that lets it hand us an arbitrary command, but it can open a shortcut by
+     * name, and each approved automation publishes one.
+     */
+    private fun runRequestedAutomation(intent: Intent?) {
+        val id = intent?.getStringExtra(Shortcuts.EXTRA_RUN_AUTOMATION) ?: return
+        intent.removeExtra(Shortcuts.EXTRA_RUN_AUTOMATION)
+
+        val app = WinBridgeApp.instance
+        app.launch { runCatching { app.client.sendMessage(AutoRunRequest(id = id)) } }
     }
 
     /**
