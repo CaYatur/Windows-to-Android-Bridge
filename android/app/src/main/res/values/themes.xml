@@ -1,4 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.WinBridge" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Dimmed but visible: used by the share sheet target and the voice
+         entry point, which show a small confirmation over whatever was there. -->
+    <style name="Theme.WinBridge.Transparent" parent="android:Theme.Material.Dialog.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <!--
+        Completely invisible and with animations off. The clipboard relay and the
+        projection request both need to be a focused Activity for a few frames;
+        a theme with any visible surface would flash the screen every time the PC
+        copies something.
+    -->
+    <style name="Theme.WinBridge.Invisible" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
 </resources>

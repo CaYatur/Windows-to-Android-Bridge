@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- LAN carrier and event-driven reconnect -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -23,11 +24,35 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Screen sharing. Android 14 requires the matching foreground service
+         type as well as the permission, and still asks the user every session. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+    <!-- Microphone and audio routing -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Ringing the phone from the PC when it is down the side of a sofa -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Scanning the pairing code, and nothing else -->
     <uses-permission android:name="android.permission.CAMERA" />
 
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Speech recognition is invoked through the system recogniser, so the
+         package has to be visible to us on Android 11+. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <application
         android:name=".WinBridgeApp"
@@ -46,6 +71,77 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Automations published as dynamic shortcuts are launched through
+                 here, which is also how the assistant reaches them. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- Share sheet target: the ordinary way a file leaves another app. -->
+        <activity
+            android:name=".ui.ShareActivity"
+            android:exported="true"
+            android:label="@string/share_to_pc"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.WinBridge.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Clipboard access is restricted to the app with input focus from
+            Android 10 on. This activity exists to briefly *be* that app: it is
+            transparent, has no animation, does its work in onCreate and
+            finishes. It is the fallback when the direct read fails.
+        -->
+        <activity
+            android:name=".ui.ClipboardRelayActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.WinBridge.Invisible" />
+
+        <!-- MediaProjection consent has to come from an Activity, so this one
+             exists only to ask and hand the result to the service. -->
+        <activity
+            android:name=".ui.ProjectionRequestActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.WinBridge.Invisible" />
+
+        <activity
+            android:name=".ui.PcScreenActivity"
+            android:exported="true"
+            android:label="@string/pc_screen"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|density"
+            android:launchMode="singleTask"
+            android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name=".ui.VoiceActivity"
+            android:exported="true"
+            android:label="@string/voice_command"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.WinBridge.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="winbridge" android:host="voice" />
+            </intent-filter>
         </activity>
 
         <service
@@ -54,6 +150,68 @@
             android:foregroundServiceType="connectedDevice">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
+
+        <!--
+            Screen and audio capture. Separate from BridgeService because the
+            foreground-service type has to match what is actually being captured,
+            and a service declaring mediaProjection is refused on Android 14 if it
+            is running without an active projection.
+        -->
+        <service
+            android:name=".service.CaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection|microphone" />
+
+        <!--
+            Injects the touches the PC sends. An accessibility service is the
+            only way to do this without root: dispatchGesture reaches any app,
+            where an ordinary app cannot send an event outside its own window.
+        -->
+        <service
+            android:name=".service.RemoteInputService"
+            android:exported="true"
+            android:label="@string/accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service" />
+        </service>
+
+        <service
+            android:name=".service.NotificationRelay"
+            android:exported="true"
+            android:label="@string/notification_relay_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- Quick Settings tiles: two taps from the lock screen, no app launch -->
+        <service
+            android:name=".service.ClipboardTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_clipboard"
+            android:label="@string/tile_clipboard"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.MirrorTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_monitor"
+            android:label="@string/tile_mirror"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
 
@@ -67,6 +225,26 @@
                 <data android:scheme="wear" android:host="*" android:pathPrefix="/winbridge" />
             </intent-filter>
         </service>
+
+        <!--
+            The documented way for Tasker, MacroDroid, Bixby routines or an adb
+            command to run an automation. Exported because that is the point, and
+            guarded by a token the user generates in the app: an exported receiver
+            with no secret is a way for any installed app to drive the PC.
+        -->
+        <receiver
+            android:name=".service.TriggerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.cayatur.winbridge.RUN_AUTOMATION" />
+                <action android:name="com.cayatur.winbridge.SEND_CLIPBOARD" />
+                <action android:name="com.cayatur.winbridge.COMMAND" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".service.NotificationActionReceiver"
+            android:exported="false" />
 
         <!-- Routes lock screen and headset transport buttons into the media
              session, which is what makes the controls actually work. -->
@@ -134,6 +312,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_power" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.AutomationWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_automations">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_automations" />
         </receiver>
     </application>
 

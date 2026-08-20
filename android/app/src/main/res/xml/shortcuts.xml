@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Static shortcuts. Automations are added on top of these at runtime as
+    dynamic shortcuts, which is what lets the assistant launch one by name
+    without any API key or cloud integration.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="send_clipboard"
+        android:enabled="true"
+        android:icon="@drawable/ic_clipboard"
+        android:shortcutShortLabel="@string/shortcut_clipboard_short"
+        android:shortcutLongLabel="@string/shortcut_clipboard_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cayatur.winbridge"
+            android:targetClass="com.cayatur.winbridge.ui.ClipboardRelayActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="pc_screen"
+        android:enabled="true"
+        android:icon="@drawable/ic_monitor"
+        android:shortcutShortLabel="@string/shortcut_screen_short"
+        android:shortcutLongLabel="@string/shortcut_screen_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cayatur.winbridge"
+            android:targetClass="com.cayatur.winbridge.ui.PcScreenActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="voice_command"
+        android:enabled="true"
+        android:icon="@drawable/ic_mic"
+        android:shortcutShortLabel="@string/shortcut_voice_short"
+        android:shortcutLongLabel="@string/shortcut_voice_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cayatur.winbridge"
+            android:targetClass="com.cayatur.winbridge.ui.VoiceActivity" />
+    </shortcut>
+</shortcuts>

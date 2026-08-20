@@ -106,4 +106,102 @@
     <string name="notification_channel_media_desc">Shows what your PC is playing, with controls</string>
     <string name="settings_media_notification">Show on lock screen and in notifications</string>
     <string name="settings_media_notification_hint">Music playing on your PC appears on this phone as if it were playing here, with controls on the lock screen.</string>
+
+    <!-- 0.2.0 features -->
+    <string name="share_to_pc">Send to PC</string>
+    <string name="pc_screen">PC screen</string>
+    <string name="voice_command">Tell my PC</string>
+    <string name="tile_clipboard">Clipboard to PC</string>
+    <string name="tile_mirror">PC screen</string>
+    <string name="accessibility_label">WinBridge remote control</string>
+    <string name="accessibility_description">Lets your PC tap, swipe and type on this phone while you are viewing its screen. Nothing is sent anywhere else, and it only acts while a mirroring session is open.</string>
+    <string name="notification_relay_label">WinBridge notifications</string>
+
+    <string name="shortcut_clipboard_short">Clipboard to PC</string>
+    <string name="shortcut_clipboard_long">Send this clipboard to my PC</string>
+    <string name="shortcut_screen_short">PC screen</string>
+    <string name="shortcut_screen_long">Show my PC screen</string>
+    <string name="shortcut_voice_short">Tell my PC</string>
+    <string name="shortcut_voice_long">Say a command for my PC</string>
+
+    <string name="widget_automations">WinBridge automations</string>
+    <string name="widget_automations_desc">Run a PC automation from the home screen</string>
+
+    <string name="channel_transfers">File transfers</string>
+    <string name="channel_transfers_desc">Progress and results of files moving between this phone and your PC</string>
+    <string name="channel_clipboard">Clipboard</string>
+    <string name="channel_clipboard_desc">Text copied on your PC, ready to paste here</string>
+    <string name="channel_capture">Screen sharing</string>
+    <string name="channel_capture_desc">Shown while this phone is sharing its screen or audio</string>
+    <string name="channel_alerts">Alerts</string>
+    <string name="channel_alerts_desc">Ringing, automation results and other one-off messages</string>
+
+    <string name="clipboard_from_pc">Copied on %1$s</string>
+    <string name="clipboard_tap_to_copy">Tap to copy it here</string>
+    <string name="clipboard_sent">Clipboard sent to your PC</string>
+    <string name="clipboard_empty">Nothing to send — the clipboard is empty</string>
+    <string name="clipboard_blocked">Android would not let the app read the clipboard in the background</string>
+
+    <string name="transfer_incoming">Receiving %1$s</string>
+    <string name="transfer_outgoing">Sending %1$s</string>
+    <string name="transfer_done">Saved %1$s</string>
+    <string name="transfer_failed">%1$s failed: %2$s</string>
+    <string name="transfer_no_pc">No PC connected</string>
+    <string name="transfer_sending_count">Sending %1$d items to %2$s</string>
+
+    <string name="capture_running">Sharing this screen with %1$s</string>
+    <string name="capture_stop">Stop</string>
+    <string name="capture_denied">Screen sharing was not allowed</string>
+
+    <string name="pc_screen_connecting">Asking your PC for its screen…</string>
+    <string name="pc_screen_off">Your PC is not sharing its screen.</string>
+    <string name="pc_screen_touch">Touch control</string>
+    <string name="pc_screen_audio">PC audio</string>
+    <string name="pc_screen_keyboard">Keyboard</string>
+    <string name="pc_screen_quality">Quality</string>
+
+    <string name="automations_title">Automations</string>
+    <string name="automations_empty">No automations yet. Create one and it will run on your PC.</string>
+    <string name="automations_new">New automation</string>
+    <string name="automations_run">Run</string>
+    <string name="automations_pending">Waiting for approval on the PC</string>
+    <string name="automations_shell_off">Shell steps are turned off on the PC</string>
+    <string name="automations_risk_safe">Safe</string>
+    <string name="automations_risk_input">Controls the PC</string>
+    <string name="automations_risk_shell">Runs commands</string>
+    <string name="automations_risk_dangerous">Destructive commands</string>
+
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_no_match">I did not catch that</string>
+    <string name="voice_sent">Sent: %1$s</string>
+    <string name="voice_unavailable">This phone has no speech recogniser available</string>
+
+    <string name="settings_features">Features</string>
+    <string name="settings_clipboard_to_pc">Send my clipboard to the PC</string>
+    <string name="settings_clipboard_from_pc">Apply the PC clipboard here</string>
+    <string name="settings_clipboard_hint">Both off by default. Android only lets an app read the clipboard while it is in front, so sending uses a notification or the Quick Settings tile when the app is in the background.</string>
+    <string name="settings_files">File transfer</string>
+    <string name="settings_screen_share">Let the PC view this screen</string>
+    <string name="settings_screen_share_hint">Android asks you to allow it once per session and cannot be skipped.</string>
+    <string name="settings_remote_input">Let the PC control this phone</string>
+    <string name="settings_remote_input_hint">Needs the accessibility service. Turn it on in Android settings; it is the only way to tap and type outside our own app without root.</string>
+    <string name="settings_audio">Audio</string>
+    <string name="settings_audio_from_pc">Play PC audio here</string>
+    <string name="settings_mic_to_pc">Use this microphone on the PC</string>
+    <string name="settings_mic_from_pc">Play the PC microphone here</string>
+    <string name="settings_notifications">Mirror my notifications to the PC</string>
+    <string name="settings_notifications_hint">Off by default: this reads every notification on the phone. Needs notification access in Android settings.</string>
+    <string name="settings_assistant">Assistant and shortcuts</string>
+    <string name="settings_shortcuts">Publish automations as shortcuts</string>
+    <string name="settings_shortcuts_hint">Each automation becomes an app shortcut, so you can add it to an assistant routine or the home screen.</string>
+    <string name="settings_triggers">Allow other apps to trigger automations</string>
+    <string name="settings_trigger_token">Trigger token</string>
+    <string name="settings_trigger_regenerate">Generate a new token</string>
+    <string name="settings_speak">Speak the answer</string>
+    <string name="settings_open_android">Open Android settings</string>
+    <string name="settings_granted">Allowed</string>
+    <string name="settings_not_granted">Not allowed yet</string>
+
+    <string name="ring_title">Your PC is looking for this phone</string>
+    <string name="ring_stop">Stop</string>
 </resources>
