@@ -17,11 +17,13 @@ public static class Vectors
 {
     public static void Emit(string outputPath)
     {
-        // Deterministic inputs. The private scalars are generated once and then
-        // written into the vector file itself, so both sides start from exactly
-        // the same key material.
-        using var client = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
-        using var server = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        // Fixed key material. These were generated once and then frozen here:
+        // regenerating them on every run made the file change every time, which
+        // turned the CI check that compares committed vectors against freshly
+        // generated ones into a guaranteed failure and hid real drift behind
+        // noise. Known-answer vectors have to be, in fact, known.
+        using var client = LoadKey(ClientPrivate, ClientPublicPoint);
+        using var server = LoadKey(ServerPrivate, ServerPublicPoint);
 
         var clientParams = client.ExportParameters(true);
         var serverParams = server.ExportParameters(true);
@@ -104,4 +106,36 @@ public static class Vectors
     }
 
     private static string Hex(byte[] data) => Convert.ToHexString(data).ToLowerInvariant();
+
+    // P-256 scalars and their matching public points. Frozen, not generated.
+    private const string ClientPrivate =
+        "0d75e7872913836936176ea47626ffadc5bc7357256f5309679c6b18baedac3a";
+    private const string ClientPublicPoint =
+        "04e1ce9f9d66c7c411fcd265c8c39bfbee4f6509726d69613d2cac8cb071fac3a5" +
+        "54b3dc2dc04797a1180163a76c22aa6b7a61a68b8c4eee76ad146f69b9e43667";
+    private const string ServerPrivate =
+        "20950aba2a5d0df2d01cc9e016dd103dd7c3493a128caa78e7863fb603f014eb";
+    private const string ServerPublicPoint =
+        "046da818ed66ba889044af2faa4787a98de89064f3d04d0009c38645497b937bf7" +
+        "0c4f92cd69fe7b75e582b1c56f14505ae42b543723633fb84adb53ba6e30d645";
+
+    /// <summary>
+    /// Rebuilds a key pair from a frozen scalar and its uncompressed point.
+    /// .NET will not derive Q from D on import, so the point is stored alongside
+    /// and checked against the curve when the key is created.
+    /// </summary>
+    private static ECDiffieHellman LoadKey(string privateHex, string pointHex)
+    {
+        byte[] d = Convert.FromHexString(privateHex);
+        byte[] point = Convert.FromHexString(pointHex);
+        if (point.Length != 65 || point[0] != 0x04)
+            throw new Exception("expected an uncompressed 65-byte P-256 point");
+
+        return ECDiffieHellman.Create(new ECParameters
+        {
+            Curve = ECCurve.NamedCurves.nistP256,
+            D = d,
+            Q = new ECPoint { X = point[1..33], Y = point[33..65] },
+        });
+    }
 }

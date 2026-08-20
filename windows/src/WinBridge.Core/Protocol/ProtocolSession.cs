@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -6,9 +7,16 @@ namespace WinBridge.Core.Protocol;
 
 public sealed record LocalIdentity(string DeviceId, string Name, string Platform);
 
-public readonly record struct InboundMessage(InnerType Inner, string? JsonType, byte[] Body)
+public readonly record struct InboundMessage(
+    InnerType Inner, string? JsonType, string? BlobId, ReadOnlyMemory<byte> Body)
 {
-    public T As<T>() => Json.Deserialize<T>(Body);
+    public T As<T>() => Json.Deserialize<T>(Body.ToArray());
+
+    /// <summary>Valid only when <see cref="Inner"/> is <see cref="InnerType.Media"/>.</summary>
+    public MediaPacket AsMedia() => MediaPacket.Parse(Body);
+
+    /// <summary>Valid only when <see cref="Inner"/> is <see cref="InnerType.Xfer"/>.</summary>
+    public XferChunk AsXfer() => XferChunk.Parse(Body);
 }
 
 /// <summary>
@@ -20,7 +28,34 @@ public sealed class ProtocolSession : IDisposable
 {
     private readonly Stream _stream;
     private readonly CryptoBox _crypto;
-    private readonly SemaphoreSlim _writeLock = new(1, 1);
+
+    // One queue per lane plus a counting signal. A Channel<T> would be tidier
+    // but cannot express "always drain control before media before bulk", which
+    // is the whole point: with mirroring running, a touch event that waits
+    // behind a tile batch is the difference between usable and unusable.
+    private readonly ConcurrentQueue<Pending>[] _lanes =
+    [
+        new ConcurrentQueue<Pending>(),
+        new ConcurrentQueue<Pending>(),
+        new ConcurrentQueue<Pending>(),
+    ];
+    private readonly SemaphoreSlim _pending = new(0);
+    private readonly CancellationTokenSource _writerStop = new();
+    private readonly Task _writer;
+    private int _mediaQueued;
+    private volatile Exception? _writeFault;
+
+    /// <summary>
+    /// How many media packets may sit unsent before new ones are discarded.
+    /// Small on purpose: a backlog of screen tiles is latency the user sees, and
+    /// a tile that is two frames old has already been superseded.
+    /// </summary>
+    public int MediaQueueLimit { get; set; } = 24;
+
+    /// <summary>Media packets discarded because the link could not keep up.</summary>
+    public long MediaDropped { get; private set; }
+
+    private sealed record Pending(byte[] Plaintext, TaskCompletionSource<bool>? Completion, bool IsMedia);
 
     public string PeerDeviceId { get; }
     public string PeerName { get; }
@@ -35,6 +70,7 @@ public sealed class ProtocolSession : IDisposable
         PeerName = peerHello.Name;
         PeerPlatform = peerHello.Platform;
         PeerMode = peerHello.Mode;
+        _writer = Task.Run(WriteLoopAsync);
     }
 
     /// <summary>
@@ -209,16 +245,16 @@ public sealed class ProtocolSession : IDisposable
         }
     }
 
-    public async Task SendJsonAsync<T>(T message, CancellationToken ct)
+    public Task SendJsonAsync<T>(T message, CancellationToken ct)
     {
         byte[] json = Json.Serialize(message);
         var body = new byte[1 + json.Length];
         body[0] = (byte)InnerType.Json;
         json.CopyTo(body, 1);
-        await SendSealedAsync(body, ct).ConfigureAwait(false);
+        return SendSealedAsync(body, SendLane.Control, ct);
     }
 
-    public async Task SendBlobAsync(string id, ReadOnlyMemory<byte> data, CancellationToken ct)
+    public Task SendBlobAsync(string id, ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         byte[] idBytes = Encoding.UTF8.GetBytes(id);
         if (idBytes.Length > 255) throw new ProtocolException("blob id too long");
@@ -228,19 +264,116 @@ public sealed class ProtocolSession : IDisposable
         body[1] = (byte)idBytes.Length;
         idBytes.CopyTo(body, 2);
         data.Span.CopyTo(body.AsSpan(2 + idBytes.Length));
-        await SendSealedAsync(body, ct).ConfigureAwait(false);
+        return SendSealedAsync(body, SendLane.Control, ct);
     }
 
-    private async Task SendSealedAsync(byte[] plaintext, CancellationToken ct)
+    /// <summary>
+    /// Queues a real-time packet. Returns immediately and does not wait for the
+    /// wire: the caller is a capture loop, and blocking it would build exactly
+    /// the backlog this lane exists to avoid. Returns false when the packet was
+    /// dropped because the link is behind.
+    /// </summary>
+    public bool TrySendMedia(in MediaPacket packet)
     {
-        await _writeLock.WaitAsync(ct).ConfigureAwait(false);
+        if (_writeFault is not null || _writerStop.IsCancellationRequested) return false;
+
+        if (Volatile.Read(ref _mediaQueued) >= MediaQueueLimit)
+        {
+            MediaDropped++;
+            return false;
+        }
+
+        Interlocked.Increment(ref _mediaQueued);
+        Enqueue(SendLane.Media, new Pending(packet.ToBytes(), null, IsMedia: true));
+        return true;
+    }
+
+    /// <summary>
+    /// Queues a bulk chunk and completes once it has actually been written, so a
+    /// file transfer is paced by the link rather than by how fast the disk reads.
+    /// </summary>
+    public Task SendXferAsync(in XferChunk chunk, CancellationToken ct) =>
+        SendSealedAsync(chunk.ToBytes(), SendLane.Bulk, ct);
+
+    private Task SendSealedAsync(byte[] plaintext, SendLane lane, CancellationToken ct)
+    {
+        if (_writeFault is not null) return Task.FromException(_writeFault);
+        ct.ThrowIfCancellationRequested();
+
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Enqueue(lane, new Pending(plaintext, completion, IsMedia: false));
+        return completion.Task;
+    }
+
+    private void Enqueue(SendLane lane, Pending item)
+    {
+        _lanes[(int)lane].Enqueue(item);
+        try { _pending.Release(); }
+        catch (ObjectDisposedException) { /* session torn down mid-send */ }
+    }
+
+    private bool TryDequeue(out Pending item)
+    {
+        for (int lane = 0; lane < _lanes.Length; lane++)
+        {
+            if (_lanes[lane].TryDequeue(out item!)) return true;
+        }
+        item = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// The single writer. Sealing happens here rather than at the call site so
+    /// the AES-GCM counter is assigned in the same order the bytes hit the wire —
+    /// assigning it earlier and writing later would let a low-priority frame
+    /// burn a counter ahead of a control frame and trip the peer's replay check.
+    /// </summary>
+    private async Task WriteLoopAsync()
+    {
+        var ct = _writerStop.Token;
         try
         {
-            byte[] sealedPayload = _crypto.Seal(plaintext);
-            await Framing.WriteAsync(_stream, FrameType.Secure, sealedPayload, ct)
-                .ConfigureAwait(false);
+            while (true)
+            {
+                await _pending.WaitAsync(ct).ConfigureAwait(false);
+                if (!TryDequeue(out var item)) continue;
+
+                if (item.IsMedia) Interlocked.Decrement(ref _mediaQueued);
+
+                try
+                {
+                    byte[] sealedPayload = _crypto.Seal(item.Plaintext);
+                    await Framing.WriteAsync(_stream, FrameType.Secure, sealedPayload, ct)
+                        .ConfigureAwait(false);
+                    item.Completion?.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    _writeFault ??= ex;
+                    item.Completion?.TrySetException(ex);
+                    FailQueued(ex);
+                    return;
+                }
+            }
         }
-        finally { _writeLock.Release(); }
+        catch (OperationCanceledException)
+        {
+            FailQueued(new OperationCanceledException("session closed"));
+        }
+        catch (Exception ex)
+        {
+            _writeFault ??= ex;
+            FailQueued(ex);
+        }
+    }
+
+    private void FailQueued(Exception ex)
+    {
+        while (TryDequeue(out var item))
+        {
+            if (item.IsMedia) Interlocked.Decrement(ref _mediaQueued);
+            item.Completion?.TrySetException(ex);
+        }
     }
 
     public async Task<InboundMessage> ReceiveAsync(CancellationToken ct)
@@ -264,15 +397,22 @@ public sealed class ProtocolSession : IDisposable
                 case InnerType.Json:
                 {
                     byte[] body = plaintext[1..];
-                    return new InboundMessage(inner, Json.ReadType(body), body);
+                    return new InboundMessage(inner, Json.ReadType(body), null, body);
                 }
                 case InnerType.Blob:
                 {
                     if (plaintext.Length < 2) throw new ProtocolException("truncated blob frame");
                     int idLen = plaintext[1];
                     if (plaintext.Length < 2 + idLen) throw new ProtocolException("truncated blob id");
-                    return new InboundMessage(inner, null, plaintext[(2 + idLen)..]);
+                    string id = Encoding.UTF8.GetString(plaintext, 2, idLen);
+                    return new InboundMessage(inner, null, id, plaintext.AsMemory(2 + idLen));
                 }
+                case InnerType.Media:
+                case InnerType.Xfer:
+                    // Left unparsed here so the payload can be sliced without a
+                    // copy by whichever consumer actually wants it.
+                    return new InboundMessage(inner, null, null, plaintext);
+
                 default:
                     throw new ProtocolException($"unknown inner type 0x{plaintext[0]:X2}");
             }
@@ -287,8 +427,11 @@ public sealed class ProtocolSession : IDisposable
 
     public void Dispose()
     {
+        try { _writerStop.Cancel(); } catch { }
+        try { _writer.Wait(TimeSpan.FromSeconds(2)); } catch { }
         _crypto.Dispose();
-        _writeLock.Dispose();
+        _writerStop.Dispose();
+        _pending.Dispose();
     }
 }
 

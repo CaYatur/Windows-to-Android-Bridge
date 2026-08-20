@@ -35,3 +35,6 @@ desktop.ini
 
 # ---- Local runtime state ----
 *.log
+
+# ---- Agent scratch ----
+.caya-agent/

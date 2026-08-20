@@ -14,7 +14,14 @@ enum class FrameType(val code: Byte) {
 }
 
 enum class InnerType(val code: Byte) {
-    JSON(0x01), BLOB(0x02);
+    JSON(0x01),
+    BLOB(0x02),
+
+    /** Real-time media: screen tiles and audio packets. Droppable under load. */
+    MEDIA(0x03),
+
+    /** Bulk file-transfer chunks. Never dropped, always flow-controlled. */
+    XFER(0x04);
 
     companion object {
         fun from(code: Byte): InnerType = entries.firstOrNull { it.code == code }
