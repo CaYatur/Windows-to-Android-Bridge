@@ -83,6 +83,7 @@ public static class Vectors
                 sealedPlaintext = Hex(plaintext),
                 sealedFrame = Hex(sealedFrame),
             },
+            messagesV2 = SampleMessages(),
         };
 
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
@@ -138,4 +139,193 @@ public static class Vectors
             Q = new ECPoint { X = point[1..33], Y = point[33..65] },
         });
     }
+
+    /// <summary>
+    /// One filled-in sample of every v2 message, serialised by the C# models.
+    /// The Kotlin side decodes these in `MessagesV2Test`, which is what catches
+    /// a renamed JSON property before it turns into a field that silently
+    /// arrives as its default on the other side — the failure mode that is
+    /// almost impossible to spot from a log.
+    /// </summary>
+    private static Dictionary<string, JsonElement> SampleMessages()
+    {
+        var samples = new List<object>
+        {
+            new FeatureSet
+            {
+                Clipboard = new ClipboardCaps { Send = true, Receive = true, MaxBytes = 1024 },
+                Files = new FileCaps { Enabled = true, MaxChunk = 32768, AutoAccept = true },
+                Screen = new ScreenCaps { Send = true, Receive = false, Targets = 2, CarrierOk = false },
+                Audio = new AudioCaps { Playback = true, Mic = true },
+                Input = new InputCaps { Send = true, Receive = true, Reason = "ok" },
+                Automations = true, Shell = true, Notifications = true, Describe = true, Ring = true,
+            },
+            new ClipboardMessage { Format = "text", Text = "merhaba", Hash = "abc123", Label = "PC" },
+            new ClipboardRequest(),
+            new XferOffer
+            {
+                Id = 9, Name = "notes.txt", Size = 4096, Mime = "text/plain", Sha256 = "ff00",
+                Batch = 3, BatchIndex = 1, BatchCount = 2, Path = "sub/notes.txt",
+            },
+            new XferAccept { Id = 9, Offset = 1024 },
+            new XferReject { Id = 9, Reason = "declined" },
+            new XferProgress { Id = 9, Bytes = 2048, BytesPerSecond = 999 },
+            new XferDone { Id = 9, Ok = true, Sha256 = "ff00", SavedAs = "C:/x/notes.txt" },
+            new XferCancel { Id = 9, Reason = "user" },
+            new ScreenTargets
+            {
+                Items = [new ScreenTarget { Id = "m0", Name = "Monitor 1", Kind = "monitor", Width = 1920, Height = 1080, Primary = true }],
+            },
+            new ScreenListRequest(),
+            new StreamStart
+            {
+                Stream = "pc.screen", Codec = "jpeg-tiles", MaxFps = 45, Quality = 55,
+                MaxEdge = 1600, Target = "m0", Audio = true, Interact = true, Cursor = false,
+            },
+            new StreamStop { Stream = "pc.screen" },
+            new StreamInfo
+            {
+                Stream = "pc.screen", Active = true, Width = 1600, Height = 900, TileWidth = 64,
+                TileHeight = 64, Columns = 25, Rows = 15, Target = "m0", Interact = true, Reason = null,
+            },
+            new StreamConfig { Stream = "pc.screen", MaxFps = 20, Quality = 40, MaxEdge = 800, Interact = false, Cursor = true },
+            new StreamStats { Stream = "pc.screen", Fps = 28.5, Kbps = 3200.25, RttMs = 14, DecodeMs = 3.5, Dropped = 7, LatencyMs = 55 },
+            new AudioStart { Stream = "pc.audio", Rate = 44100, Channels = 1, FrameMs = 40, Device = "dev1" },
+            new AudioStop { Stream = "pc.audio" },
+            new AudioInfo { Stream = "pc.audio", Active = true, Rate = 44100, Channels = 1, FrameMs = 40, Device = "dev1" },
+            new AudioDevices { Items = [new AudioDevice { Id = "dev1", Name = "Speakers", Flow = "render", IsDefault = true }] },
+            new AudioRoute { Stream = "pc.audio", Device = "dev1" },
+            new InputMouse { Action = "wheel", X = 0.25, Y = 0.75, Button = "middle", Delta = -120, HorizontalDelta = 3, Dx = 0.01, Dy = -0.02, Relative = true },
+            new InputKey { Action = "tap", Code = "f5", Mods = ["ctrl", "shift"], Repeat = 2 },
+            new InputText { Text = "gunaydin" },
+            new InputTouch { Action = "move", Pointer = 1, X = 0.5, Y = 0.5, Pressure = 0.8 },
+            new InputGesture
+            {
+                Kind = "swipe", DurationMs = 200,
+                Points = [new GesturePoint { X = 0.1, Y = 0.2, AtMs = 0 }, new GesturePoint { X = 0.8, Y = 0.2, AtMs = 200 }],
+                Points2 = [new GesturePoint { X = 0.9, Y = 0.9, AtMs = 0 }],
+            },
+            new InputNav { Action = "recents" },
+            new InputScroll { X = 0.5, Y = 0.5, Dx = 0, Dy = -0.1 },
+            new NotifPost
+            {
+                Key = "k1", Package = "com.x", AppName = "X", Title = "Title", Text = "Body",
+                SubText = "sub", BigText = "big", When = 1700000000000, Ongoing = true,
+                Category = "msg", IconHash = "deadbeef",
+                Actions = [new NotifAction { Index = 0, Title = "Reply", IsReply = true }],
+            },
+            new NotifRemove { Key = "k1" },
+            new NotifActionCommand { Key = "k1", Index = 0, Text = "tamam" },
+            new NotifDismiss { Key = "k1" },
+            new NotifSync(),
+            new NotifState { Enabled = true, Granted = false, Count = 3, Reason = "no access" },
+            new WindowList { Items = [new WindowInfo { Handle = 123, Title = "Notepad", Process = "notepad", Pid = 42, Active = true, Minimized = false }] },
+            new WindowsRequest(),
+            new WindowCommand { Action = "focus", Handle = 123, Match = "Notepad" },
+            new ProcessList { Items = [new ProcessInfo { Pid = 42, Name = "notepad", MemoryMb = 64, Cpu = 1.5 }] },
+            new ProcessesRequest { Top = 10 },
+            new ProcessCommand { Action = "kill", Pid = 42 },
+            new DescribeRequest { Target = "m0", Ocr = true, Image = true },
+            new Description { Title = "Notepad", Process = "notepad", Text = "hello", Windows = ["a", "b"], Width = 800, Height = 600, ImageHash = "cafe" },
+            new SysNotify { Title = "Hi", Text = "There", Level = "warn" },
+            new SysOpen { Target = "https://example.invalid" },
+            new PhoneRing { Action = "start", Seconds = 15 },
+            new PhoneState { Model = "Redmi", Battery = 55, Charging = true, Ringer = "normal", Network = "wifi", Volume = 7, ScreenOn = true },
+            new AutoListRequest(),
+            SampleCatalog(),
+            new AutoGetRequest { Id = "a1" },
+            new AutoDefinition { Automation = SampleAutomation() },
+            new AutoSaveRequest { Automation = SampleAutomation() },
+            new AutoSaved { Id = "a1", State = "pending", Reason = "needs approval", Summary = SampleSummary() },
+            new AutoDeleteRequest { Id = "a1" },
+            new AutoRunRequest { Id = "a1", Args = new Dictionary<string, string> { ["who"] = "world" }, DryRun = true },
+            new AutoEvent { RunId = "r1", AutomationId = "a1", Phase = "step", StepIndex = 2, StepId = "s2", StepType = "shell", Level = "warn", Message = "slow", At = 1700000000000 },
+            new AutoResult { RunId = "r1", AutomationId = "a1", Ok = true, Output = "done", StepsRun = 4, DurationMs = 1234, Variables = new Dictionary<string, string> { ["x"] = "1" } },
+            new AutoCancelRequest { RunId = "r1" },
+            new AutoLog { Items = [new AutoLogEntry { At = DateTimeOffset.UnixEpoch, AutomationId = "a1", Name = "Focus", Device = "phone", Ok = true, DurationMs = 12, Detail = "ok" }] },
+        };
+
+        var result = new Dictionary<string, JsonElement>();
+        foreach (var sample in samples)
+        {
+            // The runtime type matters: Json.Serialize<T> would otherwise write
+            // only the properties visible on object.
+            byte[] utf8 = JsonSerializer.SerializeToUtf8Bytes(sample, sample.GetType(), Json.Options);
+            var element = JsonSerializer.Deserialize<JsonElement>(utf8);
+            string name = element.GetProperty("t").GetString()!;
+            result[name] = element;
+        }
+        return result;
+    }
+
+    private static Automation SampleAutomation() => new()
+    {
+        Id = "a1",
+        Name = "Focus Chrome",
+        Description = "Bring Chrome forward and say hello",
+        Icon = "bolt",
+        Color = "#3366ff",
+        Enabled = true,
+        ConfirmEachRun = true,
+        RequireUnlocked = true,
+        CreatedBy = "phone-1",
+        CreatedAt = DateTimeOffset.UnixEpoch,
+        UpdatedAt = DateTimeOffset.UnixEpoch,
+        Approved = true,
+        BodyHash = "hash1",
+        Risk = "shell",
+        Shortcut = "focus-chrome",
+        Variables = new Dictionary<string, string> { ["who"] = "world" },
+        Steps =
+        [
+            new AutoStep
+            {
+                Id = "s1", Type = StepTypes.Window, Action = "focus",
+                Target = "Chrome", Note = "bring it forward",
+            },
+            new AutoStep
+            {
+                Id = "s2", Type = StepTypes.If, Condition = "battery < 20",
+                Then = [new AutoStep { Id = "s3", Type = StepTypes.Notify, Text = "low battery" }],
+                Else = [new AutoStep { Id = "s4", Type = StepTypes.Delay, Number = 250 }],
+            },
+            new AutoStep
+            {
+                Id = "s5", Type = StepTypes.ForEach, Items = "split(list, \",\")", Var = "item",
+                Do = [new AutoStep { Id = "s6", Type = StepTypes.Log, Text = "{{item}}" }],
+            },
+            new AutoStep
+            {
+                Id = "s7", Type = StepTypes.Shell, Shell = "powershell",
+                Command = "Write-Output {{who}}", Args = ["-NoProfile"],
+                WorkingDirectory = "C:/", TimeoutMs = 5000, Elevated = false,
+                Hidden = true, Capture = true, OnErrorContinue = true,
+            },
+            new AutoStep
+            {
+                Id = "s8", Type = StepTypes.Http, Url = "https://example.invalid", Method = "POST",
+                Headers = new Dictionary<string, string> { ["X-A"] = "b" }, Body = "{}",
+            },
+        ],
+    };
+
+    private static AutomationSummary SampleSummary() => new()
+    {
+        Id = "a1", Name = "Focus Chrome", Description = "d", Icon = "bolt", Color = "#3366ff",
+        Enabled = true, Approved = true, ConfirmEachRun = true, StepCount = 5, Risk = "shell",
+        UpdatedAt = DateTimeOffset.UnixEpoch,
+    };
+
+    private static AutoCatalog SampleCatalog() => new()
+    {
+        Items = [SampleSummary()],
+        StepTypes = [.. Protocol.StepTypes.All],
+        ShellEnabled = true,
+        TrustMode = "trusted",
+        DeviceTrusted = true,
+        AuthoringAllowed = true,
+        Allowlist = ["notepad.exe"],
+        Functions = ["contains", "len"],
+        Variables = ["cpu", "battery"],
+    };
 }
