@@ -6,6 +6,7 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.core.content.edit
 import java.security.KeyStore
+import kotlin.reflect.KProperty
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -50,9 +51,18 @@ class SecureStore(context: Context) {
         get() = prefs.getInt(KEY_LAN_PORT, 8737)
         set(value) = prefs.edit { putInt(KEY_LAN_PORT, value) }
 
+    /**
+     * Off by default from 0.2.0. Bluetooth is the right carrier for presence and
+     * control, but it cannot carry mirroring, audio or a file of any size, and
+     * preferring a link most of the features cannot use is not a good default.
+     */
     var preferBluetooth: Boolean
-        get() = prefs.getBoolean(KEY_PREFER_BT, true)
+        get() = prefs.getBoolean(KEY_PREFER_BT, false)
         set(value) = prefs.edit { putBoolean(KEY_PREFER_BT, value) }
+
+    var bluetoothEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BT_ENABLED, false)
+        set(value) = prefs.edit { putBoolean(KEY_BT_ENABLED, value) }
 
     var setupComplete: Boolean
         get() = prefs.getBoolean(KEY_SETUP_DONE, false)
@@ -63,7 +73,112 @@ class SecureStore(context: Context) {
         get() = prefs.getBoolean(KEY_MEDIA_NOTIFICATION, true)
         set(value) = prefs.edit { putBoolean(KEY_MEDIA_NOTIFICATION, value) }
 
+    // ---- 0.2.0 feature switches -------------------------------------------
+    //
+    // Enough of these arrived at once that spelling every one out as a get/set
+    // pair buried the two that actually matter. The delegates below keep the
+    // default visible on the same line as the name, which is the thing worth
+    // reading when someone asks "is this on out of the box?".
+
+    /** Send what is copied here to the PC. Off until asked for. */
+    var clipboardToPc by BoolPref("clipboardToPc", false)
+
+    /** Apply what the PC copies to this clipboard. Off until asked for. */
+    var clipboardFromPc by BoolPref("clipboardFromPc", false)
+
+    /** Copy without asking, rather than posting a tap-to-apply notification. */
+    var clipboardAutoApply by BoolPref("clipboardAutoApply", true)
+
+    var fileTransferEnabled by BoolPref("fileTransfer", true)
+    var fileAutoAccept by BoolPref("fileAutoAccept", false)
+    var fileAutoAcceptMaxMb by IntPref("fileAutoAcceptMaxMb", 64)
+    var downloadFolderUri by StringPref("downloadFolderUri")
+
+    /** Let the PC ask this phone to mirror its screen. Each session still needs a tap. */
+    var allowScreenShare by BoolPref("allowScreenShare", true)
+
+    /** Send phone audio along with the screen, when the app being captured permits it. */
+    var screenShareAudio by BoolPref("screenShareAudio", true)
+
+    /** Let the PC drive this phone through the accessibility service. */
+    var allowRemoteInput by BoolPref("allowRemoteInput", false)
+
+    /** View the PC screen from the phone. */
+    var viewPcEnabled by BoolPref("viewPc", true)
+    var viewPcInteract by BoolPref("viewPcInteract", true)
+    var viewPcAudio by BoolPref("viewPcAudio", true)
+    var viewPcQuality by IntPref("viewPcQuality", 70)
+    var viewPcMaxFps by IntPref("viewPcMaxFps", 30)
+    var viewPcMaxEdge by IntPref("viewPcMaxEdge", 1280)
+
+    /** Play PC audio through this phone. */
+    var audioFromPc by BoolPref("audioFromPc", false)
+
+    /** Send this phone microphone to the PC. */
+    var micToPc by BoolPref("micToPc", false)
+
+    /** Play the PC microphone here. */
+    var micFromPc by BoolPref("micFromPc", false)
+
+    /** Mirror notifications to the PC. Off by default: it reads every notification. */
+    var notificationMirror by BoolPref("notificationMirror", false)
+    var notificationSkipOngoing by BoolPref("notifSkipOngoing", true)
+    var notificationBlocked by StringSetPref("notifBlocked")
+
+    var automationsEnabled by BoolPref("automations", true)
+
+    /** Let the PC ring this phone when it is lost down the side of a sofa. */
+    var allowRing by BoolPref("allowRing", true)
+
+    /** Publish automations as app shortcuts, so the assistant can launch them by name. */
+    var publishShortcuts by BoolPref("publishShortcuts", true)
+
+    /** Allow other apps (Tasker and friends) to trigger automations through the intent API. */
+    var allowExternalTriggers by BoolPref("allowExternalTriggers", false)
+
+    /** Secret that external triggers must present. Rotated from the UI. */
+    var triggerToken by StringPref("triggerToken")
+
+    /** Speak the answer when asking the PC what is on screen. */
+    var speakAnswers by BoolPref("speakAnswers", true)
+
+    /** Only try LAN for the things Bluetooth cannot carry. Mirrors the host setting. */
+    var mediaLanOnly by BoolPref("mediaLanOnly", true)
+
     val isPaired: Boolean get() = psk != null && hostDeviceId != null
+
+    // ---- preference delegates ----------------------------------------------
+
+    private inner class BoolPref(private val key: String, private val default: Boolean) {
+        operator fun getValue(owner: Any?, property: KProperty<*>): Boolean =
+            prefs.getBoolean(key, default)
+
+        operator fun setValue(owner: Any?, property: KProperty<*>, value: Boolean) =
+            prefs.edit { putBoolean(key, value) }
+    }
+
+    private inner class IntPref(private val key: String, private val default: Int) {
+        operator fun getValue(owner: Any?, property: KProperty<*>): Int = prefs.getInt(key, default)
+
+        operator fun setValue(owner: Any?, property: KProperty<*>, value: Int) =
+            prefs.edit { putInt(key, value) }
+    }
+
+    private inner class StringPref(private val key: String, private val default: String? = null) {
+        operator fun getValue(owner: Any?, property: KProperty<*>): String? =
+            prefs.getString(key, default)
+
+        operator fun setValue(owner: Any?, property: KProperty<*>, value: String?) =
+            prefs.edit { putString(key, value) }
+    }
+
+    private inner class StringSetPref(private val key: String) {
+        operator fun getValue(owner: Any?, property: KProperty<*>): Set<String> =
+            prefs.getStringSet(key, emptySet()) ?: emptySet()
+
+        operator fun setValue(owner: Any?, property: KProperty<*>, value: Set<String>) =
+            prefs.edit { putStringSet(key, value) }
+    }
 
     var psk: ByteArray?
         get() {
@@ -137,6 +252,7 @@ class SecureStore(context: Context) {
         const val KEY_LAN_HOSTS = "hostLanHosts"
         const val KEY_LAN_PORT = "hostLanPort"
         const val KEY_PREFER_BT = "preferBluetooth"
+        const val KEY_BT_ENABLED = "bluetoothEnabled"
         const val KEY_SETUP_DONE = "setupComplete"
         const val KEY_MEDIA_NOTIFICATION = "showMediaNotification"
         const val KEY_PSK = "psk"
