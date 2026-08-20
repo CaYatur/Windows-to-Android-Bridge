@@ -15,4 +15,15 @@
     <string name="wear_display_off">Ekranı kapat</string>
     <string name="wear_media_tile">Medya</string>
     <string name="wear_system_tile">PC durumu</string>
+
+    <string name="wear_automations">Otomasyonlar</string>
+    <string name="wear_no_automations">Bilgisayarda henüz onaylı otomasyon yok</string>
+    <string name="wear_trackpad">Touchpad</string>
+    <string name="wear_trackpad_hint">Sürükle: imleç · dokun: tıkla
+basılı tut: sağ tık</string>
+    <string name="wear_voice">Bilgisayara söyle</string>
+    <string name="wear_whats_on_screen">Ekranda ne var</string>
+    <string name="wear_clipboard">Panoyu bilgisayara</string>
+    <string name="wear_back">Geri</string>
+    <string name="wear_sent">Gönderildi: %1$s</string>
 </resources>

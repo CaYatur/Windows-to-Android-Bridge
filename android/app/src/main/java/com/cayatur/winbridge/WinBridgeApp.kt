@@ -12,6 +12,7 @@ import com.cayatur.winbridge.net.BluetoothCarrier
 import com.cayatur.winbridge.net.BridgeClient
 import com.cayatur.winbridge.net.BridgeState
 import com.cayatur.winbridge.net.TcpCarrier
+import com.cayatur.winbridge.wear.WearPublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -78,6 +79,23 @@ class WinBridgeApp : Application() {
         scope.launch {
             state.automations.collectLatest { catalog ->
                 Shortcuts.publish(this@WinBridgeApp, catalog?.items.orEmpty(), store.publishShortcuts)
+                WearPublisher.publishAutomations(
+                    this@WinBridgeApp,
+                    catalog?.items.orEmpty(),
+                    catalog?.shellEnabled == true,
+                )
+            }
+        }
+
+        // The watch asks the PC what is on screen and expects the answer back on
+        // its own wrist, not on the phone it relayed through.
+        scope.launch {
+            state.description.collectLatest { answer ->
+                if (answer == null) return@collectLatest
+                WearPublisher.publishAnswer(
+                    this@WinBridgeApp,
+                    listOfNotNull(answer.title, answer.text?.take(400)).joinToString(". "),
+                )
             }
         }
     }

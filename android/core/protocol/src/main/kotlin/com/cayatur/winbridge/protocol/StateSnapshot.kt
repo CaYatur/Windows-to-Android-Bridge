@@ -60,4 +60,17 @@ object WearPaths {
     const val STATE = "/winbridge/state"
     const val COMMAND = "/winbridge/cmd"
     const val STATE_KEY = "snapshot"
+
+    /**
+     * The automation list, on its own data item rather than folded into the
+     * state snapshot: the snapshot changes every second while metrics tick, and
+     * re-syncing an unchanged automation list at that rate would be battery
+     * spent on nothing.
+     */
+    const val AUTOMATIONS = "/winbridge/automations"
+    const val AUTOMATIONS_KEY = "automations"
+
+    /** Replies the watch shows after a command: text the phone sends back. */
+    const val ANSWER = "/winbridge/answer"
+    const val ANSWER_KEY = "answer"
 }

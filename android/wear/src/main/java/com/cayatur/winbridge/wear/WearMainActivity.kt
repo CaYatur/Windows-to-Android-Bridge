@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,16 +54,40 @@ class WearMainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WearState.load(this)
         WearArtwork.load(this)
-        setContent { MaterialTheme { WearRoot() } }
+        WearExtras.load(this)
+        setContent { MaterialTheme { WearApp() } }
+    }
+}
+
+private enum class WearScreen { HOME, AUTOMATIONS, TRACKPAD }
+
+/**
+ * Three screens, switched by a chip rather than a navigation library.
+ *
+ * A watch app with three destinations does not need a back stack; adding one
+ * would cost a dependency and a lifecycle to reason about for something a
+ * single state variable expresses exactly.
+ */
+@Composable
+private fun WearApp() {
+    var screen by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(WearScreen.HOME)
+    }
+
+    when (screen) {
+        WearScreen.HOME -> WearRoot(onOpen = { screen = it })
+        WearScreen.AUTOMATIONS -> WearAutomationsScreen(onBack = { screen = WearScreen.HOME })
+        WearScreen.TRACKPAD -> WearTrackpadScreen(onBack = { screen = WearScreen.HOME })
     }
 }
 
 @Composable
-private fun WearRoot() {
+private fun WearRoot(onOpen: (WearScreen) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snapshot by WearState.snapshot.collectAsStateWithLifecycle()
     val artwork by WearArtwork.bitmap.collectAsStateWithLifecycle()
+    val answer by WearExtras.answer.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { WearState.refresh(context) }
 
@@ -82,6 +107,79 @@ private fun WearRoot() {
                 }
             }
             item { SystemCard(snapshot) }
+
+            // The answer to "what is on my PC screen", relayed back by the phone.
+            answer?.let { text ->
+                item {
+                    Text(
+                        text,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    onClick = { onOpen(WearScreen.AUTOMATIONS) },
+                    colors = ChipDefaults.primaryChipColors(),
+                    label = { Text(context.getString(R.string.wear_automations)) },
+                )
+            }
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    onClick = { onOpen(WearScreen.TRACKPAD) },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = { Text(context.getString(R.string.wear_trackpad)) },
+                )
+            }
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    onClick = {
+                        context.startActivity(
+                            android.content.Intent(context, WearVoiceActivity::class.java),
+                        )
+                    },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = { Text(context.getString(R.string.wear_voice)) },
+                )
+            }
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    onClick = {
+                        scope.launch {
+                            WearState.send(
+                                context,
+                                com.cayatur.winbridge.protocol.WearCommands.DESCRIBE + ":now",
+                            )
+                        }
+                    },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = { Text(context.getString(R.string.wear_whats_on_screen)) },
+                )
+            }
+            item {
+                Chip(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    onClick = {
+                        scope.launch {
+                            WearState.send(
+                                context,
+                                com.cayatur.winbridge.protocol.WearCommands.CLIPBOARD + ":send",
+                            )
+                        }
+                    },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    label = { Text(context.getString(R.string.wear_clipboard)) },
+                )
+            }
             item {
                 Chip(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),

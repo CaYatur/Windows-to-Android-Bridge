@@ -6,6 +6,14 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Speech is handled by the system recogniser, which has to be visible to
+         us on API 30+ before an intent can reach it. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -68,6 +76,28 @@
                 android:resource="@drawable/media_tile_preview"
                 tools:ignore="MissingTileProviderPreview" />
         </service>
+
+        <service
+            android:name=".AutomationTileService"
+            android:exported="true"
+            android:label="@string/wear_automations"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/tile_preview"
+                tools:ignore="MissingTileProviderPreview" />
+        </service>
+
+        <activity
+            android:name=".WearVoiceActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:label="@string/wear_voice"
+            android:theme="@android:style/Theme.NoDisplay" />
 
         <activity
             android:name=".TileCommandActivity"

@@ -15,4 +15,15 @@
     <string name="wear_display_off">Turn off display</string>
     <string name="wear_media_tile">Media</string>
     <string name="wear_system_tile">PC status</string>
+
+    <string name="wear_automations">Automations</string>
+    <string name="wear_no_automations">Nothing approved on the PC yet</string>
+    <string name="wear_trackpad">Trackpad</string>
+    <string name="wear_trackpad_hint">Drag to move · tap to click
+hold for right click</string>
+    <string name="wear_voice">Tell my PC</string>
+    <string name="wear_whats_on_screen">What is on screen</string>
+    <string name="wear_clipboard">Clipboard to PC</string>
+    <string name="wear_back">Back</string>
+    <string name="wear_sent">Sent: %1$s</string>
 </resources>

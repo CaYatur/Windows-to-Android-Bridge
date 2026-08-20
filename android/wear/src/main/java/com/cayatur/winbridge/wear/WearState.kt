@@ -96,20 +96,44 @@ class WearStateService : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         events.forEach { event ->
             if (event.type != DataEvent.TYPE_CHANGED) return@forEach
-            if (event.dataItem.uri.path != WearPaths.STATE) return@forEach
-
             val dataMap = DataMapItem.fromDataItem(event.dataItem).dataMap
-            WearState.store(applicationContext, StateSnapshot.decode(dataMap.getString(WearPaths.STATE_KEY)))
 
-            scope.launch {
-                WearArtwork.updateFromAsset(applicationContext, dataMap.getAsset(WearArtwork.DATA_KEY))
-                runCatching {
-                    androidx.wear.tiles.TileService.getUpdater(applicationContext)
-                        .requestUpdate(WinBridgeTileService::class.java)
-                    androidx.wear.tiles.TileService.getUpdater(applicationContext)
-                        .requestUpdate(MediaTileService::class.java)
+            when (event.dataItem.uri.path) {
+                WearPaths.STATE -> {
+                    WearState.store(
+                        applicationContext,
+                        StateSnapshot.decode(dataMap.getString(WearPaths.STATE_KEY)),
+                    )
+                    scope.launch {
+                        WearArtwork.updateFromAsset(applicationContext, dataMap.getAsset(WearArtwork.DATA_KEY))
+                        requestTileUpdates(withAutomations = false)
+                    }
                 }
+
+                WearPaths.AUTOMATIONS -> {
+                    WearExtras.storeAutomations(
+                        applicationContext,
+                        com.cayatur.winbridge.protocol.WearAutomations.decode(
+                            dataMap.getString(WearPaths.AUTOMATIONS_KEY),
+                        ),
+                    )
+                    scope.launch { requestTileUpdates(withAutomations = true) }
+                }
+
+                WearPaths.ANSWER ->
+                    WearExtras.storeAnswer(applicationContext, dataMap.getString(WearPaths.ANSWER_KEY))
             }
+        }
+    }
+
+    private fun requestTileUpdates(withAutomations: Boolean) {
+        runCatching {
+            val updater = androidx.wear.tiles.TileService.getUpdater(applicationContext)
+            updater.requestUpdate(WinBridgeTileService::class.java)
+            updater.requestUpdate(MediaTileService::class.java)
+            // Only when the list actually moved: a tile refresh is not free, and
+            // the automation tile does not change when a CPU reading does.
+            if (withAutomations) updater.requestUpdate(AutomationTileService::class.java)
         }
     }
 
