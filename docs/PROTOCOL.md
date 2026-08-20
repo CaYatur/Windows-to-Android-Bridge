@@ -1,4 +1,4 @@
-# WinBridge Wire Protocol v1
+# WinBridge Wire Protocol v2
 
 One protocol, two carriers. A carrier only has to provide an ordered, reliable
 byte stream; the framing, session and message layers are identical over
@@ -30,6 +30,10 @@ Windows is always the **server**; Android is always the **client**.
 | 0x03 | `SECURE`    | AES-256-GCM| after handshake |
 | 0x04 | `BYE`       | plaintext  | orderly close   |
 
+> **v2 keeps the handshake and key schedule byte for byte.** A 0.1.x phone and a
+> 0.2.0 host still connect; they simply never exchange the new message types.
+> The known-answer vectors are unchanged, which is what proves it.
+
 After the handshake completes, **only** `SECURE` and `BYE` frames are legal.
 Receiving a plaintext `HELLO`/`HELLO_ACK` mid-session closes the connection.
 
@@ -59,6 +63,32 @@ Plaintext inside a `SECURE` frame:
 |-------|--------------------------------------------|
 | 0x01  | UTF-8 JSON message (see §3)                |
 | 0x02  | binary blob: `idLen:u8, id[idLen], data[]` |
+| 0x03  | real-time media packet (see §7)            |
+| 0x04  | bulk transfer chunk (see §8)               |
+
+### 1.2 Send lanes
+
+One socket carries control, media and bulk traffic, so the writer drains a
+strict three-lane priority queue:
+
+| lane | carries | policy |
+|------|---------|--------|
+| control | JSON, blobs, heartbeat, input | never dropped, always first |
+| media | screen tiles, audio | bounded; drops oldest under pressure |
+| bulk | file chunks | never dropped, flow-controlled, always last |
+
+Sent naively this all starves: a touch event queued behind a 48 KB tile batch
+arrives late, and a file transfer pushes the heartbeat toward the 15 s liveness
+cutoff, so the link feels worse the more it is used.
+
+**Sealing happens in the writer, not at the call site.** Assigning the AES-GCM
+counter earlier and writing later would let a low-priority frame burn a counter
+ahead of a control frame and trip the peer's replay check.
+
+The media lane drops rather than blocks. A screen tile two frames old has
+already been superseded, and waiting for it only adds latency someone can see.
+The bulk lane never drops, so a transfer is paced by the link rather than by how
+fast the disk reads.
 
 ---
 
@@ -253,7 +283,161 @@ not the link.
 
 ---
 
-## 6. Transport selection
+## 6. Feature negotiation
+
+After auth, each side sends what it is willing and able to do right now — the
+server as `evt.features`, the client as `cl.features` — and re-sends it whenever
+a setting changes.
+
+```json
+{ "t":"evt.features", "v":2,
+  "clipboard":{"send":false,"receive":false,"maxBytes":262144},
+  "files":{"enabled":true,"maxChunk":49152,"autoAccept":false},
+  "screen":{"send":true,"receive":true,"codecs":["jpeg-tiles"],"targets":2,"carrierOk":true},
+  "audio":{"playback":false,"mic":false,"formats":["pcm_s16le"],"carrierOk":true},
+  "input":{"send":true,"receive":false,"reason":"disabled in settings"},
+  "automations":true, "shell":false, "notifications":false,
+  "describe":true, "ring":true }
+```
+
+This exists for the same reason `state.host.caps` did in v1: the peer greys out
+what is off rather than offering a button that silently does nothing. `carrierOk`
+is false when the current carrier cannot carry that stream at all — see §7.
+
+---
+
+## 7. Media packets (inner `0x03`)
+
+```
++--------+---------+--------+---------+--------+-----------+
+| kind:u8|stream:u8| seq:u32| ts:u32  |flags:u8| payload   |
++--------+---------+--------+---------+--------+-----------+
+```
+
+`kind` is 1 for video and 2 for audio. `ts` is milliseconds since the stream
+started. `flags` bit 0 is **keyframe**, bit 1 is **end of frame**.
+
+| stream | id |
+|---|---|
+| `pc.screen` | 0 |
+| `phone.screen` | 1 |
+| `pc.audio` | 2 |
+| `phone.audio` | 3 |
+| `pc.mic` | 4 |
+| `phone.mic` | 5 |
+
+### 7.1 The video payload — `jpeg-tiles`
+
+A frame is a list of changed tiles, repeated:
+
+```
+index:u16, len:u32, jpeg[len]
+```
+
+Tiles are 64x64. Geometry (`w`, `h`, `tileW`, `tileH`, `cols`, `rows`) comes from
+`stream.info` before the first frame, so the receiver never has to infer it.
+Tile *n* sits at column `n % cols`, row `n / cols`.
+
+**Keyframe marks only the first packet of a frame.** It tells the receiver to
+clear its canvas, so setting it on every packet of a split frame would have the
+receiver wipe the tiles it painted a moment earlier.
+
+A frame is split across packets at ~48 KB. The sender must reset the change
+state of any tile whose packet was dropped, or a tile that never changes again —
+a toolbar, a wallpaper edge — stays stale for the rest of the session.
+
+**Why intra-only tiles rather than H.264.** A hardware H.264 encoder buffers
+frames to build references: the bytes are far smaller, but the first byte of a
+frame leaves later. Tiles have no reference state, so a frame is on the wire as
+soon as it is grabbed, and a still desktop costs a few hundred bytes because
+only the tiles whose content hash moved are sent. What it costs is bandwidth on
+full-screen video — which is why these streams are refused over RFCOMM rather
+than degraded, and why quality, then frame rate, then resolution walk themselves
+down from what the receiver reports. That order is the one a viewer minds least:
+softer edges bother people less than stutter, and stutter less than a picture
+too small to read.
+
+The codec is named in `stream.start`, so another one can be added without a
+breaking change.
+
+### 7.2 The audio payload
+
+Raw PCM, format announced in `audio.start` / `audio.info` — `pcm_s16le`,
+48 kHz stereo by default, ~20 ms per packet.
+
+Uncompressed on purpose. At 48 kHz stereo that is 1.5 Mbit/s, which a LAN does
+not notice, and it costs no encode or decode latency at either end. The entire
+point is that the sound lines up with the picture.
+
+### 7.3 Carrier limits
+
+RFCOMM sustains roughly a megabit. Mirroring and audio are **refused** over
+Bluetooth rather than degraded: a mirror that updates twice a second reads as a
+broken feature, not a slow one. `screen.carrierOk` and `audio.carrierOk` say so
+before anything is attempted.
+
+---
+
+## 8. Bulk chunks (inner `0x04`)
+
+```
++----------+--------+--------+--------+
+| xferId:u32| seq:u32|flags:u8| data  |
++----------+--------+--------+--------+
+```
+
+`flags` bit 0 marks the last chunk. Chunks are 48 KB.
+
+The JSON side is `xfer.offer` -> `xfer.accept` / `xfer.reject` -> chunks ->
+`xfer.done`, with `xfer.progress` and `xfer.cancel` available throughout.
+Offers carry a `batch` id so a multi-file selection arrives as one thing.
+
+Receivers must treat the offered relative path as hostile — it may have come
+from a share sheet another app wrote — and refuse anything that resolves outside
+the chosen folder.
+
+---
+
+## 9. Message index (v2)
+
+Clipboard: `cb.set`, `cb.get`
+
+Files: `xfer.offer`, `xfer.accept`, `xfer.reject`, `xfer.progress`, `xfer.done`,
+`xfer.cancel`
+
+Screen: `screen.list`, `screen.targets`, `stream.start`, `stream.stop`,
+`stream.info`, `stream.config`, `stream.stats`
+
+Audio: `audio.start`, `audio.stop`, `audio.info`, `audio.devices`, `audio.route`
+
+Input: `input.mouse`, `input.key`, `input.text`, `input.touch`, `input.gesture`,
+`input.nav`, `input.scroll`
+
+Automations: `auto.list`, `auto.catalog`, `auto.get`, `auto.def`, `auto.save`,
+`auto.saved`, `auto.delete`, `auto.run`, `auto.event`, `auto.result`,
+`auto.cancel`, `auto.log`
+
+Notifications: `notif.post`, `notif.remove`, `notif.action`, `notif.dismiss`,
+`notif.sync`, `notif.state`
+
+Machine: `sys.windows`, `sys.windowlist`, `sys.window`, `sys.processes`,
+`sys.processlist`, `sys.process`, `sys.describe`, `sys.description`,
+`sys.notify`, `sys.open`, `phone.ring`, `phone.state`
+
+Coordinates in every input message are **normalised 0..1 against the streamed
+surface**, never pixels: the sender is looking at a scaled copy and should not
+have to know the receiver resolution, DPI, or which monitor the pointer landed
+on.
+
+Both implementations are pinned together by one filled-in sample of every
+message in `protocol-vectors.json`, decoded and asserted field by field on the
+Kotlin side. A property renamed on one side without the other fails the build by
+name — without that check it would surface much later as a value silently
+arriving as its default.
+
+---
+
+## 10. Transport selection
 
 Both carriers may be connected at once. The active one is chosen by
 configurable preference, defaulting to **Bluetooth** as requested.

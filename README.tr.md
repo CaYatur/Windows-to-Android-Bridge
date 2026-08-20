@@ -1,41 +1,101 @@
-# WinBridge — Windows ↔ Android Bridge
+# WinBridge — Windows ↔ Android Köprüsü
 
-Windows'unuzu telefonunuzdan izleyin ve yönetin. Çalan medya, CPU/GPU/RAM/ağ/pil
-durumu telefonda **widget** olarak; kilitleme, uyku, kapatma ve ses kontrolü tek
-dokunuşla. Bağlantı **Bluetooth** veya **LAN** üzerinden — bir kere eşleştirin,
-ikisi de çalışsın.
+Bilgisayarınız ve telefonunuz tek bir makine gibi. İki ekranı da karşılıklı
+yansıtın — sesle ve dokunmatik kontrolle —, dosya ve panoyu iki yönde taşıyın,
+ses ve mikrofonları aralarında yönlendirin, bilgisayarda çalışan otomasyonlar
+kurun: telefondan, saatten, bir widget'tan ya da sesinizle.
 
 🇬🇧 [English README](README.md)
 
-> **Durum:** [v0.1.2 yayınlandı](../../releases/latest). Aşağıdakilerin tamamı
-> gerçek bilgisayar, telefon ve saatte denenmiştir.
+> **Durum:** [v0.2.0](../../releases/latest). Aşağıdaki
+> [neler gerçekten çalıştırıldı](#neler-gerçekten-çalıştırıldı) bölümüne bakın —
+> bu sürüm büyük, ve iki makine ile kronometre gerektiren kısımlar dürüstçe
+> ayrıca belirtildi.
 
 ---
 
-## Ne yapar
+## Neler yapıyor
 
-**Telefonda görürsünüz**
+### Ekranlar
 
-- Çalan parça, telefonda **gerçek bir medya oturumu** olarak — bildirim
-  gölgesinde, kilit ekranında ve Hızlı Ayarlar oynatıcısında kapak görseli,
-  kontroller ve ilerleme çubuğuyla, sanki müzik telefonda çalıyormuş gibi.
-  Varsayılan açık; Ayarlar'dan kapatılabilir.
-- Başlık, sanatçı, albüm, kapak görseli, konum/süre, kaynak uygulama
-- CPU, GPU, RAM, ağ (yükleme/indirme), disk kullanımı
-- Pil yüzdesi ve şarj durumu (dizüstü bilgisayarlarda)
-- Ses seviyesi ve sessize alma durumu
+- **Bilgisayar ekranı telefonda**: dokunmatik kontrol, klavye, kaydırma,
+  parmakla yakınlaştırma ve yanında bilgisayar sesi.
+- **Telefon ekranı bilgisayarda**: fare, klavye ve gezinme tuşları — yanında
+  telefon sesiyle.
+- İkisi de kendini ayarlar: önce kalite, sonra kare hızı, sonra çözünürlük,
+  *alıcının* bildirdiğine göre aşağı iner. Yani görüntü, izleyenin en az
+  rahatsız olduğu sırayla bozulur.
+- Etkileşim ve ses, oturum sürerken ayrı ayrı açılıp kapatılabilir.
 
-**Telefondan yaparsınız**
+### Pano
 
-- Oynat / duraklat / ileri / geri / sarma
-- Ses ayarı ve sessize alma
-- Kilitle, uyku, hazırda beklet, oturumu kapat, yeniden başlat, kapat
-- Ekranı kapat *(sistem destekliyorsa — desteklenmeyen makinelerde buton pasif olur)*
+- Telefon → bilgisayar ve bilgisayar → telefon, **ikisi de varsayılan kapalı**.
+- Hızlı Ayarlar döşemesi, kısayol, saat ve paylaşım menüsünden de erişilebilir.
 
-**Widget'lar** — medya, sistem istatistikleri, birleşik ve güç kontrolleri;
-ayrı ayrı veya birlikte kullanılabilir.
+### Dosyalar
 
-**Wear OS** — saatte medya ve sistem durumu, telefon üzerinden çalışır.
+- İki yönde, her boyutta; ilerleme, kaldığı yerden devam ve sağlama toplamı ile.
+- Windows Gezgini'nde **sağ tık → "Telefona gönder"** (dosya ve klasör).
+- Telefonda her şey için **paylaşım menüsü**.
+- Gelen dosyalar İndirilenler'e iner; diğer tüm uygulamalar görebilir.
+
+### Ses
+
+- Bilgisayar sesi → telefon
+- Telefon sesi → bilgisayar
+- Telefon mikrofonu → bilgisayar
+- Bilgisayar mikrofonu → telefon
+
+Ham PCM: sesle görüntü arasında kodlama/çözme gecikmesi yok.
+
+### Otomasyonlar
+
+Telefonda kurun, bilgisayarda çalışsın. Kabuk komutları, pencereler, süreçler,
+dosyalar, HTTP, girdi, medya, güç — `if`/`else`, `while`, `repeat`, `foreach`,
+değişkenler ve bir ifade diliyle.
+
+Güvenlik sonradan eklenmiş bir katman değil, tasarımın kendisi:
+
+- Kabuk adımları, bilgisayarda uyarının önünde açılana kadar hiçbir şey yapmaz.
+- Onay, çalıştırılabilir gövdenin hash'ine bağlıdır — ad değişirse korunur,
+  komutta tek karakter değişirse iptal olur.
+- Onay diyaloğu, komut satırını **değişkenler yerine konduktan sonra** gösterir.
+- Çalışmalar adım, döngü, çıktı ve süre olarak sınırlıdır.
+- Her çalışma, yalnızca eklenebilen bir denetim dosyasına yazılır.
+- Tek bir anahtar her şeyi reddeder.
+
+Ayrıntı: [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md)
+
+### Bildirimler
+
+Telefon bildirimleri bilgisayara yansır; yanıtlama ve kapatma dahil.
+**Varsayılan kapalı** — telefondaki her bildirimi okur, bu yüzden açmak iki
+bilinçli adım gerektirir.
+
+### Ses komutları ve asistanlar
+
+Gemini veya Asistan'ın üçüncü parti bir uygulamaya serbest metin komut
+iletmesini sağlayan herkese açık bir on-device API **yok** — dolayısıyla bu
+entegrasyon kimse tarafından, API anahtarıyla ya da anahtarsız, kurulamaz.
+WinBridge bunun yerine şunları sunuyor: otomasyonların başlatıcı kısayolu olarak
+yayınlanması, cihazın kendi tanıyıcısını kullanan yerel bir sesli komut
+eşleştiricisi, Tasker ve benzerleri için belgelenmiş bir intent API'si, ve
+"bilgisayar ekranında ne var" sorusunun Windows tarafında OCR ile yanıtlanıp
+sesli okunması.
+
+Dürüst ve tam açıklama: [docs/ASSISTANT.md](docs/ASSISTANT.md)
+
+### 0.1.x'ten gelenler
+
+Gerçek bir Android medya oturumu olarak "şimdi çalıyor",
+CPU/GPU/RAM/ağ/pil, ses düzeyi, güç işlemleri, beş ana ekran widget'ı ve
+Wear OS uygulaması.
+
+### Wear OS
+
+Medya ve sistem durumuna **ek olarak**: otomasyon çalıştırma, bilgisayar için
+touchpad, sesli komut, "bilgisayar ekranında ne var" yanıtının bilekte okunması
+ve pano düğmesi. Üç döşeme.
 
 ---
 
@@ -43,12 +103,17 @@ ayrı ayrı veya birlikte kullanılabilir.
 
 | Yöntem | Ne zaman | Not |
 |---|---|---|
-| **Bluetooth (RFCOMM)** | Varsayılan tercih | Wi-Fi gerekmez, her yerde çalışır |
-| **LAN (TCP)** | Aynı ağdayken | Çok daha yüksek hız — kapak görselleri için ideal |
-| **Uzak ağ** | PC'de port yönlendirdiyseniz | Kanal uçtan uca şifreli |
+| **LAN (TCP)** | 0.2.0'dan itibaren varsayılan | Her şey çalışır |
+| **Bluetooth (RFCOMM)** | İsteğe bağlı | Varlık, medya, kontrol, bildirim |
+| **Uzaktan** | Portu yönlendirirseniz | Kanal uçtan uca şifreli |
 
-Bir yöntemle eşleştirdiğinizde diğeri **otomatik olarak** eşleşir: eşleşen kanal
-üzerinden karşı tarafın adresi ve anahtarı aktarılır.
+**Bluetooth 0.2.0'dan itibaren varsayılan kapalı**; mevcut kurulumlar bir kez
+taşınır. Varlık ve kontrol için hâlâ doğru taşıyıcı — Wi-Fi olmadan çalışır ve
+telefon ağdan çıkınca ayakta kalır — ama kabaca bir megabit taşır; yansıtma, ses
+ve kayda değer boyutta dosya oraya sığmaz. Bu akışlar Bluetooth üzerinde
+bozulmuş görünecek şekilde yavaşlatılmak yerine, **gerekçesiyle reddedilir**.
+
+Bir yöntemle eşleştirin, diğeri otomatik olarak kurulur.
 
 ---
 
@@ -58,71 +123,97 @@ Bir yöntemle eşleştirdiğinizde diğeri **otomatik olarak** eşleşir: eşle�
 
 1. [Releases](../../releases) sayfasından `WinBridge-Setup-x.y.z.exe` indirin.
 2. Çalıştırın. Yönetici hakkı gerekmez.
-3. İlk kurulumda arayüz bir kez açılır; sonrasında sistem tepsisinden erişilir.
-4. Oturum açılışında otomatik başlar.
+3. Sistem tepsisinde yaşar, oturum açtığınızda başlar.
 
-> **SmartScreen uyarısı:** kurulum dosyası imzasızdır (kod imzalama sertifikası
-> ücretli bir üründür). "Daha fazla bilgi" → "Yine de çalıştır" deyin.
+> **SmartScreen uyarısı:** kurulum dosyası imzasız (kod imzalama sertifikaları
+> ücretli ve kimlik doğrulamalı bir üründür). "Diğer bilgiler" → "Yine de
+> çalıştır" seçin.
 
 ### Android
 
-1. Aynı sayfadan `app-release.apk` indirin ve kurun (bilinmeyen kaynaklara izin
-   vermeniz gerekir).
-2. Uygulamayı açın, kurulum sihirbazını izleyin.
-3. Windows tepsi menüsünden **Eşleştir** deyin, çıkan QR'ı telefonla okutun.
+1. Aynı sayfadan `app-release.apk` kurun.
+2. Uygulamayı açıp kurulum sihirbazını izleyin.
+3. Windows tepsi menüsünden **Eşleştir**'i seçip QR kodu okutun.
 
-**Bluetooth kullanacaksanız:** önce Windows Ayarlar'dan telefonu normal şekilde
-eşleştirin. Bu adım programatik olarak yapılamaz, işletim sistemi seviyesinde
-bir gerekliliktir.
+İki Android izni koddan istenemez, Android ayarlarından verilmelidir. Uygulama
+bunların durumunu ilgili anahtarın yanında gösterir:
+
+- **Erişilebilirlik** — yalnızca bilgisayarın telefonu kontrol etmesi için
+  gerekir. Root olmadan kendi uygulamamız dışında dokunmanın ve yazmanın tek
+  yolu budur.
+- **Bildirim erişimi** — yalnızca bildirim yansıtma için gerekir.
+
+**Bluetooth isterseniz:** önce telefonu Windows Ayarları'ndan normal şekilde
+eşleştirin, sonra WinBridge'de iki tarafta da açın. Bu adım programatik olarak
+yapılamaz; her iki işletim sisteminin de gereğidir.
 
 ### Wear OS saat
 
-Saat APK'sı ayrı bir dosyadır (`wear-release.apk`) — Play Store dışından
-dağıtımda saate ayrıca kurulmalıdır:
+Ayrı APK (`wear-release.apk`), aynı anahtarla imzalı:
 
 ```bash
-adb connect <saatin-ip-adresi>:5555
-adb -s <saatin-ip-adresi>:5555 install wear-release.apk
+adb connect <saat-ip>:5555
+adb -s <saat-ip>:5555 install wear-release.apk
 ```
-
-Saatteki uygulama telefona bağlı çalışır; telefonda WinBridge kurulu olmalıdır.
-
----
-
-## Dil
-
-Uygulamalar **İngilizce** ve **Türkçe** içerir ve cihaz dilinizi izler. Diğer
-tüm dillerde İngilizce'ye düşer.
 
 ---
 
 ## Güvenlik
 
-- Eşleştirme 32 baytlık bir ortak anahtar (PSK) üretir; QR ile aktarılır ve
-  **ağdan hiç geçmez**.
-- Her oturum ayrıca geçici ECDH (P-256) anahtarı üretir → geçmiş oturumlar
-  sonradan çözülemez (forward secrecy).
-- Tüm trafik AES-256-GCM ile şifrelenir, çift taraflı kimlik doğrulaması yapılır.
-- Eşleştirme modu yalnızca sizin başlatmanızla, 60 saniyeliğine açılır.
+- Eşleştirme, QR kodla iletilen 32 baytlık bir ön paylaşımlı anahtar üretir;
+  bu anahtar **ağdan hiç geçmez**.
+- Her oturum ayrıca geçici bir ECDH (P-256) anahtarı türetir; ön paylaşımlı
+  anahtar sızsa bile kaydedilmiş trafik sonradan çözülemez.
+- Tüm trafik AES-256-GCM, karşılıklı kimlik doğrulama ve tekrar koruması ile.
+- Zaten paylaştığınız şeyi okuyanlar dışında her yeni özellik **varsayılan
+  kapalı**.
+- Otomasyon intent API'si varsayılan kapalı ve anahtarla korumalı — gizi olmayan
+  dışa açık bir alıcı, kurduğunuz herhangi bir uygulamanın bilgisayarınızda
+  komut çalıştırmasının yoludur.
 
-Ayrıntılar: [docs/PROTOCOL.md](docs/PROTOCOL.md)
+Ayrıntı: [docs/PROTOCOL.md](docs/PROTOCOL.md)
+
+---
+
+## Neler gerçekten çalıştırıldı
+
+Bu sürüm büyük; test konusunda dürüstlük yeşil bir tikten daha değerli.
+
+**Her derlemede otomatik testlerle doğrulanan**
+
+- İki uygulamadaki telsiz protokolü, bilinen-cevap vektörleri ve 58 v2 mesajının
+  her birinin doldurulmuş birer örneğiyle birbirine sabitlendi.
+- Şerit önceliği: kontrol çerçeveleri, biriken toplu trafiği geçiyor.
+- Medya paketleri sınırsız kuyruğa alınmak yerine düşürülüyor.
+- Her iki uygulama ve host temiz derleniyor.
+
+**Elle doğrulanan**
+
+- v0.2.0 sürüm notlarında, fiziksel bilgisayar/telefon/saatte tam olarak neyin
+  çalıştırıldığı ve neyin çalıştırılmadığı yazıyor.
+
+Donanımınızda farklı davranırsa başlangıç noktası günlükler: Windows'ta
+Etkinlik sekmesi, telefonda `adb logcat -s WinBridge`.
 
 ---
 
 ## Geliştirme
 
 ```bash
-# Android
-cd android && ./gradlew :app:assembleDebug
-
-# Windows
-cd windows && dotnet build
+cd android && ./gradlew :app:assembleDebug :wear:assembleDebug
 ```
 
-Gereksinimler: JDK 17+, Android SDK 36, .NET 10 SDK, Inno Setup 6 (kurulum
-paketi için).
+```bash
+dotnet build windows/src/WinBridge.App/WinBridge.App.csproj
+dotnet run --project windows/tests/WinBridge.Core.Tests
+```
 
-Mimari kararlar ve nedenleri: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Gereksinimler: JDK 17+, Android SDK 36, .NET 10 SDK, Inno Setup 6 (kurulum).
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — kararlar ve gerekçeleri
+- [docs/PROTOCOL.md](docs/PROTOCOL.md) — telsiz biçimi
+- [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md) — adımlar, ifadeler, güvenlik
+- [docs/ASSISTANT.md](docs/ASSISTANT.md) — ses, kısayollar, intent API
 
 ---
 
