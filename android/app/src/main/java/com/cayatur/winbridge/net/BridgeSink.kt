@@ -1,5 +1,6 @@
 package com.cayatur.winbridge.net
 
+import com.cayatur.winbridge.protocol.AudioInfo
 import com.cayatur.winbridge.protocol.AudioStart
 import com.cayatur.winbridge.protocol.AudioStop
 import com.cayatur.winbridge.protocol.ClipboardMessage
@@ -52,6 +53,13 @@ interface BridgeSink {
     /** The PC asking for this phone microphone, or for its playback audio. */
     fun onStartAudio(request: AudioStart) {}
     fun onStopAudio(request: AudioStop) {}
+
+    /**
+     * The PC reporting a stream it owns. This is what opens the local sink, and
+     * it carries the format the PC actually got rather than the one we asked
+     * for — a device that would only give 44.1 kHz has to be believed.
+     */
+    fun onAudioInfo(info: AudioInfo) {}
 
     /** A touch, gesture, key, text or navigation event to inject locally. */
     fun onInput(message: InboundMessage) {}

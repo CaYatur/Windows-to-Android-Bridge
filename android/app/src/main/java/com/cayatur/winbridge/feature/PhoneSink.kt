@@ -8,6 +8,7 @@ import com.cayatur.winbridge.WinBridgeApp
 import com.cayatur.winbridge.net.BridgeSink
 import com.cayatur.winbridge.net.TAG
 import com.cayatur.winbridge.protocol.AudioCaps
+import com.cayatur.winbridge.protocol.AudioInfo
 import com.cayatur.winbridge.protocol.AudioStart
 import com.cayatur.winbridge.protocol.AudioStop
 import com.cayatur.winbridge.protocol.ClipboardCaps
@@ -127,23 +128,32 @@ class PhoneSink(
 
     override fun onStopScreenShare() = CaptureService.stop(context)
 
+    /**
+     * The PC asking this phone to produce one of its own streams.
+     *
+     * Only phone-owned streams are acted on here. The PC never asks us to open a
+     * sink — the listener decides, and when this phone is the listener it asks
+     * and then opens from the `audio.info` that comes back.
+     */
     override fun onStartAudio(request: AudioStart) {
         when (StreamIds.fromName(request.stream)) {
-            // The PC wants this phone microphone.
             StreamIds.PHONE_MIC -> {
-                if (!app.store.micToPc) return
+                if (!app.store.micToPc) {
+                    refuse(request.stream, "the phone microphone is off on the phone")
+                    return
+                }
                 CaptureService.startMicrophone(context, request.rate, request.channels)
             }
 
-            // The PC is about to send its output or its microphone here.
-            StreamIds.PC_AUDIO -> {
-                if (!app.store.audioFromPc && PcScreenActivity.active == null) return
-                AudioPlayback.start(StreamIds.PC_AUDIO, request.rate, request.channels)
-            }
-
-            StreamIds.PC_MIC -> {
-                if (!app.store.micFromPc) return
-                AudioPlayback.start(StreamIds.PC_MIC, request.rate, request.channels, voiceCall = true)
+            StreamIds.PHONE_AUDIO -> {
+                // Capturing what other apps are playing needs an active
+                // MediaProjection, which only exists while the screen is being
+                // shared. Saying so beats going quiet.
+                if (!app.store.screenShareAudio) {
+                    refuse(request.stream, "phone audio sharing is off on the phone")
+                } else if (!RemoteInputService.sessionOpen) {
+                    refuse(request.stream, "start screen sharing first; Android ties app audio capture to it")
+                }
             }
 
             else -> Unit
@@ -151,11 +161,73 @@ class PhoneSink(
     }
 
     override fun onStopAudio(request: AudioStop) {
-        when (val stream = StreamIds.fromName(request.stream)) {
+        when (StreamIds.fromName(request.stream)) {
             StreamIds.PHONE_MIC -> context.startService(
                 Intent(context, CaptureService::class.java).setAction(CaptureService.ACTION_STOP_MIC),
             )
-            else -> AudioPlayback.stop(stream)
+            StreamIds.PHONE_AUDIO -> Unit
+            else -> Unit
+        }
+    }
+
+    /**
+     * The PC telling us how one of its streams turned out. Opening the sink from
+     * here rather than from our own request means the format is the one the PC
+     * actually got, and that a stream stopping on that side closes this one.
+     */
+    override fun onAudioInfo(info: AudioInfo) {
+        val stream = StreamIds.fromName(info.stream)
+        if (stream != StreamIds.PC_AUDIO && stream != StreamIds.PC_MIC) return
+
+        if (!info.active) {
+            AudioPlayback.stop(stream)
+            if (info.reason != null) Log.i(TAG, "${info.stream} stopped: ${info.reason}")
+            return
+        }
+
+        val wanted = when (stream) {
+            StreamIds.PC_AUDIO -> app.store.audioFromPc || PcScreenActivity.active != null
+            else -> app.store.micFromPc
+        }
+        if (!wanted) return
+
+        AudioPlayback.start(
+            stream,
+            rate = if (info.rate > 0) info.rate else 48000,
+            channels = if (info.channels > 0) info.channels else 2,
+            voiceCall = stream == StreamIds.PC_MIC,
+        )
+    }
+
+    private fun refuse(stream: String, reason: String) {
+        Log.i(TAG, "audio refused ($stream): $reason")
+        app.launch {
+            runCatching {
+                app.client.sendMessage(AudioInfo(stream = stream, active = false, reason = reason))
+            }
+        }
+    }
+
+    /**
+     * Asks the PC for the streams this phone wants to hear, and stops the ones
+     * it no longer does. Called whenever a switch moves.
+     */
+    fun reconcileAudio() {
+        request(StreamIds.PC_AUDIO, app.store.audioFromPc)
+        request(StreamIds.PC_MIC, app.store.micFromPc)
+    }
+
+    private fun request(stream: Byte, wanted: Boolean) {
+        val name = StreamIds.name(stream)
+        app.launch {
+            runCatching {
+                if (wanted) {
+                    app.client.sendMessage(AudioStart(stream = name))
+                } else {
+                    AudioPlayback.stop(stream)
+                    app.client.sendMessage(AudioStop(stream = name))
+                }
+            }
         }
     }
 

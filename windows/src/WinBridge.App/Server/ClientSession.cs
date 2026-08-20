@@ -74,6 +74,7 @@ public sealed class ClientSession(
             await session.SendJsonAsync(HostSnapshot(), linked.Token);
             await session.SendJsonAsync(services.DescribePeer(), linked.Token);
             await SendFeaturesAsync(linked.Token);
+            await ReconcileAudioAsync(linked.Token);
 
             var receive = ReceiveLoopAsync(linked.Token);
             var push = PushLoopAsync(linked.Token);
@@ -102,6 +103,45 @@ public sealed class ClientSession(
     /// </summary>
     public Task SendFeaturesAsync(CancellationToken ct) =>
         session.SendJsonAsync(services.DescribeFeatures(carrier, services.Input.Available), ct);
+
+    /// <summary>
+    /// Asks the phone for the streams this machine wants to listen to, and stops
+    /// the ones it no longer does.
+    ///
+    /// The listener drives, in both directions. Whoever wants to hear something
+    /// asks for it; the producer answers with `audio.info` carrying the format it
+    /// actually managed, and the listener opens its sink from that. Having the
+    /// producer decide would mean guessing whether anyone is listening, and
+    /// having both decide would open every stream twice.
+    /// </summary>
+    public async Task ReconcileAudioAsync(CancellationToken ct)
+    {
+        var settings = services.Store.Settings.Audio;
+        await RequestAsync(StreamIds.PhoneAudio, settings.FromPhone, ct);
+        await RequestAsync(StreamIds.PhoneMic, settings.MicFromPhone, ct);
+    }
+
+    private async Task RequestAsync(byte stream, bool wanted, CancellationToken ct)
+    {
+        string name = StreamIds.Name(stream);
+        var settings = services.Store.Settings.Audio;
+
+        if (wanted)
+        {
+            await session.SendJsonAsync(new AudioStart
+            {
+                Stream = name,
+                Rate = settings.Rate,
+                Channels = settings.Channels,
+                FrameMs = settings.FrameMs,
+            }, ct);
+        }
+        else
+        {
+            services.Audio.StopRender(stream);
+            await session.SendJsonAsync(new AudioStop { Stream = name }, ct);
+        }
+    }
 
     private HostState HostSnapshot() => new()
     {
@@ -446,6 +486,34 @@ public sealed class ClientSession(
             case MessageTypesV2.AudioDevices:
                 await session.SendJsonAsync(new AudioDevices { Items = services.Audio.Devices() }, ct);
                 return true;
+
+            case MessageTypesV2.AudioInfo:
+            {
+                // The phone reporting a stream it owns. This is what opens the
+                // sink on this side, and it carries the format the phone
+                // actually got rather than the one we asked for — a device that
+                // would only give 44.1 kHz mono has to be believed, not assumed.
+                var info = message.As<AudioInfo>();
+                byte id = StreamIds.FromName(info.Stream);
+                if (id is not (StreamIds.PhoneAudio or StreamIds.PhoneMic)) return true;
+
+                if (info.Active)
+                {
+                    var opened = services.Audio.StartRender(new AudioStart
+                    {
+                        Stream = info.Stream,
+                        Rate = info.Rate > 0 ? info.Rate : 48000,
+                        Channels = info.Channels > 0 ? info.Channels : 2,
+                    });
+                    if (!opened.Active) Log?.Invoke($"could not play {info.Stream}: {opened.Reason}");
+                }
+                else
+                {
+                    services.Audio.StopRender(id);
+                    if (info.Reason is not null) Log?.Invoke($"{info.Stream} stopped: {info.Reason}");
+                }
+                return true;
+            }
 
             default:
                 return false;

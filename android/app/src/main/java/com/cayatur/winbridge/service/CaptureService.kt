@@ -99,7 +99,20 @@ class CaptureService : Service() {
                 intent.getIntExtra(EXTRA_RATE, 48000),
                 intent.getIntExtra(EXTRA_CHANNELS, 1),
             )
-            ACTION_STOP_MIC -> { microphone?.stop(); microphone = null }
+            ACTION_STOP_MIC -> {
+                microphone?.stop()
+                microphone = null
+                app.scope.launch {
+                    runCatching {
+                        app.client.sendMessage(
+                            AudioInfo(
+                                stream = StreamIds.name(StreamIds.PHONE_MIC),
+                                active = false, reason = "stopped on the phone",
+                            ),
+                        )
+                    }
+                }
+            }
         }
         return START_NOT_STICKY
     }
@@ -276,6 +289,20 @@ class CaptureService : Service() {
 
     private fun startMicrophone(rate: Int, channels: Int) {
         microphone?.stop()
+
+        // The PC opens its sink from this, so it has to be sent even though the
+        // PC is the side that asked.
+        app.scope.launch {
+            runCatching {
+                app.client.sendMessage(
+                    AudioInfo(
+                        stream = StreamIds.name(StreamIds.PHONE_MIC),
+                        active = true, rate = rate, channels = channels, frameMs = 20,
+                    ),
+                )
+            }
+        }
+
         microphone = AudioCapture(
             stream = StreamIds.PHONE_MIC,
             rate = rate,
@@ -322,6 +349,22 @@ class CaptureService : Service() {
         audio?.stop()
         microphone?.stop()
         thread?.quitSafely()
+
+        // Phone audio capture dies with the projection, so the PC has to be told
+        // to close its sink or it sits waiting for packets that stopped coming.
+        val hadAudio = audio != null
+        if (hadAudio) {
+            app.scope.launch {
+                runCatching {
+                    app.client.sendMessage(
+                        AudioInfo(
+                            stream = StreamIds.name(StreamIds.PHONE_AUDIO),
+                            active = false, reason = "screen sharing stopped",
+                        ),
+                    )
+                }
+            }
+        }
 
         display = null
         reader = null

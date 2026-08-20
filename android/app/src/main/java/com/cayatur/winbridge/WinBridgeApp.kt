@@ -44,7 +44,7 @@ class WinBridgeApp : Application() {
     val files: FileTransfer by lazy { FileTransfer(this, store, client, scope) }
     val ringer: Ringer by lazy { Ringer(this) }
     val voice: VoiceCommands by lazy { VoiceCommands(this) }
-    private val sink: PhoneSink by lazy { PhoneSink(this, this) }
+    val sink: PhoneSink by lazy { PhoneSink(this, this) }
 
     /** The most recent screenshot the PC sent, for the describe screen. */
     @Volatile
@@ -56,7 +56,12 @@ class WinBridgeApp : Application() {
      * Re-sends the capability set. Called whenever a switch moves, so the PC
      * greys out what is now off instead of offering a button that does nothing.
      */
-    fun announceFeatures() = scope.launch { client.announceFeatures() }
+    fun announceFeatures() = scope.launch {
+        client.announceFeatures()
+        // A switch that changes what we listen to has to change what we ask for,
+        // or the toggle moves and nothing happens.
+        sink.reconcileAudio()
+    }
 
     override fun onCreate() {
         super.onCreate()

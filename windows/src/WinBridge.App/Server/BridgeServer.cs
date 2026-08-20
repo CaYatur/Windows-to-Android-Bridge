@@ -212,7 +212,11 @@ public sealed class BridgeServer : IAsyncDisposable
         _clipboard.IncludeImages = settings.Clipboard.Images;
         _clipboard.MaxBytes = settings.Clipboard.MaxBytes;
 
-        Broadcast(session => session.SendFeaturesAsync(CancellationToken.None));
+        Broadcast(async session =>
+        {
+            await session.SendFeaturesAsync(CancellationToken.None);
+            await session.ReconcileAudioAsync(CancellationToken.None);
+        });
     }
 
     /// <summary>Runs an action on every live session, ignoring the ones that have gone away.</summary>

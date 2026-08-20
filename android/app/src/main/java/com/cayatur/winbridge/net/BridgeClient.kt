@@ -268,7 +268,12 @@ class BridgeClient(
                 MessageTypesV2.STREAM_STOP -> sink.onStopScreenShare()
                 MessageTypesV2.AUDIO_START -> sink.onStartAudio(message.decode<AudioStart>())
                 MessageTypesV2.AUDIO_STOP -> sink.onStopAudio(message.decode<AudioStop>())
-                MessageTypesV2.AUDIO_INFO -> state.onAudioInfo(message.decode<AudioInfo>())
+                MessageTypesV2.AUDIO_INFO -> {
+                    val info = message.decode<AudioInfo>()
+                    state.onAudioInfo(info)
+                    // Also to the sink: this is what actually opens playback.
+                    sink.onAudioInfo(info)
+                }
                 MessageTypesV2.AUDIO_DEVICES -> state.onAudioDevices(message.decode<AudioDevices>())
 
                 // ---- input the PC wants injected here -------------------------

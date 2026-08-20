@@ -183,8 +183,6 @@ public sealed class ScreenCapture : IDisposable
             if (_pixels.Length < needed) _pixels = new byte[needed];
             Marshal.Copy(data.Scan0, _pixels, 0, needed);
 
-            _tile ??= new Bitmap(TileSize, TileSize, PixelFormat.Format32bppRgb);
-
             for (int row = 0; row < Rows; row++)
             {
                 for (int column = 0; column < Columns; column++)
@@ -199,7 +197,7 @@ public sealed class ScreenCapture : IDisposable
                     if (!forceAll && _hashes[index] == hash && !retry.Contains(index)) continue;
 
                     _hashes[index] = hash;
-                    byte[] jpeg = EncodeTile(frame, x, y, width, height, quality, out int length);
+                    byte[] jpeg = EncodeTile(stride, x, y, width, height, quality, out int length);
 
                     // Consumed here, before the buffer is reused for the next tile.
                     sink((ushort)index, jpeg.AsSpan(0, length));
@@ -242,32 +240,48 @@ public sealed class ScreenCapture : IDisposable
         return hash;
     }
 
-    private byte[] EncodeTile(Bitmap frame, int x, int y, int width, int height, int quality, out int length)
+    /// <summary>
+    /// Builds one tile from the frame pixels already copied out in
+    /// <see cref="DiffTiles"/> and encodes it as JPEG.
+    ///
+    /// Copied row by row rather than drawn with <c>Graphics.DrawImage</c>,
+    /// because the frame bitmap is locked for the whole diff pass and GDI+
+    /// refuses to draw from a locked bitmap — a mistake that throws on the very
+    /// first frame rather than degrading, so it never reaches a user, but it
+    /// also never reaches a test that only ever looks at geometry. It is faster
+    /// too: no GDI+ round trip per tile.
+    /// </summary>
+    private byte[] EncodeTile(int stride, int x, int y, int width, int height, int quality, out int length)
     {
-        Bitmap target;
-        bool temporary = false;
-
-        if (width == TileSize && height == TileSize)
-        {
-            target = _tile!;
-            using var graphics = Graphics.FromImage(target);
-            graphics.DrawImage(frame, new Rectangle(0, 0, width, height),
-                new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
-        }
-        else
-        {
+        bool exact = width == TileSize && height == TileSize;
+        Bitmap target = exact
+            ? (_tile ??= new Bitmap(TileSize, TileSize, PixelFormat.Format32bppRgb))
             // Edge tiles are narrower or shorter than the rest; encoding them at
             // their real size avoids sending a black border the receiver would
             // have to know to ignore.
-            target = new Bitmap(width, height, PixelFormat.Format32bppRgb);
-            temporary = true;
-            using var graphics = Graphics.FromImage(target);
-            graphics.DrawImage(frame, new Rectangle(0, 0, width, height),
-                new Rectangle(x, y, width, height), GraphicsUnit.Pixel);
-        }
+            : new Bitmap(width, height, PixelFormat.Format32bppRgb);
 
         try
         {
+            var region = new Rectangle(0, 0, width, height);
+            var bits = target.LockBits(region, ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                int rowBytes = width * 4;
+                for (int row = 0; row < height; row++)
+                {
+                    Marshal.Copy(
+                        _pixels,
+                        (y + row) * stride + x * 4,
+                        bits.Scan0 + row * bits.Stride,
+                        rowBytes);
+                }
+            }
+            finally
+            {
+                target.UnlockBits(bits);
+            }
+
             _jpegBuffer.SetLength(0);
             using var parameters = new EncoderParameters(1);
             parameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)Math.Clamp(quality, 5, 100));
@@ -278,7 +292,7 @@ public sealed class ScreenCapture : IDisposable
         }
         finally
         {
-            if (temporary) target.Dispose();
+            if (!exact) target.Dispose();
         }
     }
 

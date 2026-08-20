@@ -34,6 +34,17 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Before the instance check, so it can be run while the tray app is
+        // already listening on the port.
+        if (e.Args.Contains("--selftest-capture"))
+        {
+            int code = Features.CaptureSelfTest.Run(
+                ArgumentsAfter(e.Args, "--selftest-capture").FirstOrDefault()
+                    ?? "capture-selftest.png");
+            Shutdown(code);
+            return;
+        }
+
         // Explorer starts one process per selected item, so the paths are
         // spooled before the instance check: whichever copy wins the mutex picks
         // the whole batch up, and the rest can leave immediately.
