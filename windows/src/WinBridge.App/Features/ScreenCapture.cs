@@ -81,13 +81,23 @@ public sealed class ScreenCapture : IDisposable
         return (width, height, (width + TileSize - 1) / TileSize, (height + TileSize - 1) / TileSize);
     }
 
+    /// <summary>Receives one encoded tile. The span is only valid for the call.</summary>
+    public delegate void TileSink(ushort index, ReadOnlySpan<byte> jpeg);
+
     /// <summary>
-    /// Captures <paramref name="source"/> and returns the tiles that changed.
-    /// Returns an empty list when nothing moved, which is the common case and
-    /// costs one grab plus a hash sweep.
+    /// Captures <paramref name="source"/> and hands each changed tile to
+    /// <paramref name="sink"/>. Returns how many tiles changed — zero is the
+    /// common case and costs one grab plus a hash sweep.
+    ///
+    /// A sink rather than a returned list, because the JPEG encoder writes into
+    /// one reused buffer: collecting the tiles first would hand the caller a
+    /// list of entries that all alias that buffer, so every tile but the last
+    /// would be written to the wire as a truncated prefix of the wrong image.
+    /// A single-tile frame would still look right, which is the kind of bug
+    /// that survives a casual look and then breaks the moment anything scrolls.
     /// </summary>
-    public List<(ushort Index, byte[] Jpeg, int Length)> CaptureChanged(
-        Rectangle source, int maxEdge, int quality, bool drawCursor, bool forceAll = false)
+    public int CaptureChanged(
+        Rectangle source, int maxEdge, int quality, bool drawCursor, bool forceAll, TileSink sink)
     {
         EnsureBuffers(source, maxEdge);
 
@@ -110,7 +120,7 @@ public sealed class ScreenCapture : IDisposable
         }
 
         Bitmap frame = _scaled ?? _grab!;
-        return DiffTiles(frame, quality, forceAll || _hashes.Length == 0);
+        return DiffTiles(frame, quality, forceAll || _hashes.Length == 0, sink);
     }
 
     private void EnsureBuffers(Rectangle source, int maxEdge)
@@ -151,9 +161,9 @@ public sealed class ScreenCapture : IDisposable
         Rows = (Height + TileSize - 1) / TileSize;
     }
 
-    private List<(ushort, byte[], int)> DiffTiles(Bitmap frame, int quality, bool forceAll)
+    private int DiffTiles(Bitmap frame, int quality, bool forceAll, TileSink sink)
     {
-        var changed = new List<(ushort, byte[], int)>();
+        int changed = 0;
         int tiles = Columns * Rows;
         if (_hashes.Length != tiles) { _hashes = new ulong[tiles]; forceAll = true; }
 
@@ -190,7 +200,10 @@ public sealed class ScreenCapture : IDisposable
 
                     _hashes[index] = hash;
                     byte[] jpeg = EncodeTile(frame, x, y, width, height, quality, out int length);
-                    changed.Add(((ushort)index, jpeg, length));
+
+                    // Consumed here, before the buffer is reused for the next tile.
+                    sink((ushort)index, jpeg.AsSpan(0, length));
+                    changed++;
                 }
             }
         }

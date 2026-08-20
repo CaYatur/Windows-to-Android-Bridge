@@ -174,15 +174,30 @@ public sealed class ScreenService(BridgeStore store) : IDisposable
         {
             var token = _stop.Token;
             bool first = true;
+            var packet = new MemoryStream(TileCodec.MaxPacketBytes);
+            var packed = new List<ushort>();
 
             while (!token.IsCancellationRequested)
             {
                 var frameStart = _clock.Elapsed;
                 var bounds = ScreenCapture.Resolve(Target);
+                uint timestamp = (uint)_clock.ElapsedMilliseconds;
 
-                var tiles = _capture.CaptureChanged(bounds, MaxEdge, Quality, Cursor, forceAll: first);
-                bool keyframe = first;
+                bool wantKeyframe = first;
+                bool keyframeSent = false;
                 first = false;
+
+                int changed = _capture.CaptureChanged(bounds, MaxEdge, Quality, Cursor, wantKeyframe,
+                    (index, jpeg) =>
+                    {
+                        if (packet.Length > 0 && packet.Length + jpeg.Length + 6 > TileCodec.MaxPacketBytes)
+                        {
+                            Flush(packet, packed, timestamp, wantKeyframe && !keyframeSent, last: false);
+                            keyframeSent = true;
+                        }
+                        TileCodec.WriteTile(packet, index, jpeg);
+                        packed.Add(index);
+                    });
 
                 if (_capture.Width != _reportedWidth || _capture.Height != _reportedHeight)
                 {
@@ -191,7 +206,8 @@ public sealed class ScreenService(BridgeStore store) : IDisposable
                     OnGeometry?.Invoke(Describe());
                 }
 
-                if (tiles.Count > 0) Send(tiles, keyframe, token);
+                if (changed > 0)
+                    Flush(packet, packed, timestamp, wantKeyframe && !keyframeSent, last: true);
 
                 Adapt();
 
@@ -202,31 +218,16 @@ public sealed class ScreenService(BridgeStore store) : IDisposable
             }
         }
 
-        private void Send(List<(ushort Index, byte[] Jpeg, int Length)> tiles, bool keyframe, CancellationToken token)
+        /// <summary>
+        /// Writes one packet.
+        ///
+        /// Keyframe marks only the first packet of a frame. It tells the
+        /// receiver to clear its canvas, so setting it on every packet of a
+        /// split frame would have the receiver wipe the tiles it had just
+        /// painted from the packets before.
+        /// </summary>
+        private void Flush(MemoryStream packet, List<ushort> packed, uint timestamp, bool keyframe, bool last)
         {
-            var packet = new MemoryStream(TileCodec.MaxPacketBytes);
-            var packed = new List<ushort>();
-            uint timestamp = (uint)_clock.ElapsedMilliseconds;
-
-            for (int index = 0; index < tiles.Count; index++)
-            {
-                var (tileIndex, jpeg, length) = tiles[index];
-
-                if (packet.Length > 0 && packet.Length + length + 6 > TileCodec.MaxPacketBytes)
-                {
-                    Flush(packet, packed, timestamp, keyframe, last: false, token);
-                }
-
-                TileCodec.WriteTile(packet, tileIndex, jpeg.AsSpan(0, length));
-                packed.Add(tileIndex);
-            }
-
-            Flush(packet, packed, timestamp, keyframe, last: true, token);
-        }
-
-        private void Flush(MemoryStream packet, List<ushort> packed, uint timestamp, bool keyframe, bool last, CancellationToken token)
-        {
-            if (packet.Length == 0 && !last) return;
             if (packet.Length == 0) return;
 
             var flags = MediaFlags.None;

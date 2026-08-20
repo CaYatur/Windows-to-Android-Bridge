@@ -24,12 +24,14 @@ public sealed class BridgeServer : IAsyncDisposable
         store = bridgeStore;
         _files = new FileTransferService(store);
         _screen = new ScreenService(store);
+        _phoneMirror = new PhoneMirrorService(store);
         _audio = new AudioService(store);
         _automations = new AutomationService(store, _automationStore);
         _notifications = new NotificationHub(store);
 
         _files.Log += m => Emit(m);
         _screen.Log += m => Emit(m);
+        _phoneMirror.Log += m => Emit(m);
         _audio.Log += m => Emit(m);
         _automations.Log += m => Emit(m);
         _automationStore.Log += m => Emit(m);
@@ -47,6 +49,7 @@ public sealed class BridgeServer : IAsyncDisposable
     private readonly ClipboardBridge _clipboard = new();
     private readonly FileTransferService _files;
     private readonly ScreenService _screen;
+    private readonly PhoneMirrorService _phoneMirror;
     private readonly AudioService _audio;
     private readonly InputInjector _input = new();
     private readonly SystemQueryService _systemQuery = new();
@@ -69,6 +72,7 @@ public sealed class BridgeServer : IAsyncDisposable
     public ClipboardBridge Clipboard => _clipboard;
     public FileTransferService Files => _files;
     public ScreenService Screen => _screen;
+    public PhoneMirrorService PhoneMirror => _phoneMirror;
     public AudioService Audio => _audio;
     public AutomationService Automations => _automations;
     public NotificationHub Notifications => _notifications;
@@ -173,6 +177,7 @@ public sealed class BridgeServer : IAsyncDisposable
             Clipboard = _clipboard,
             Files = _files,
             Screen = _screen,
+            PhoneMirror = _phoneMirror,
             Audio = _audio,
             Input = _input,
             SystemQuery = _systemQuery,
@@ -184,6 +189,7 @@ public sealed class BridgeServer : IAsyncDisposable
         };
 
         _automations.Host = _services;
+        _phoneMirror.OnUiThread = OnUiThreadAsync;
 
         // Remote input is refused on the lock screen even when the setting is
         // on: nobody is there to see what is being typed.
@@ -220,6 +226,29 @@ public sealed class BridgeServer : IAsyncDisposable
                 catch (Exception ex) { Diagnostics.Log.Write($"broadcast to {session.PeerName} failed: {ex.Message}"); }
             });
         }
+    }
+
+    /// <summary>
+    /// Locks the machine a little after the phone goes away, if asked to.
+    ///
+    /// Delayed rather than immediate, and cancelled by any reconnect: Wi-Fi drops
+    /// for a second all the time, and a bridge that locks the desktop every time
+    /// an access point re-associates would be turned off within a day.
+    /// </summary>
+    private void ConsiderLocking(string who)
+    {
+        var presence = store.Settings.Presence;
+        if (!presence.LockOnAway || _sessions.IsEmpty is false) return;
+
+        int delay = Math.Max(5, presence.LockDelaySec);
+        Emit($"{who} left; locking in {delay}s unless it comes back");
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(delay));
+            if (!_sessions.IsEmpty) { Emit("phone came back; not locking"); return; }
+            if (store.Settings.Presence.LockOnAway) _power.Execute("lock", 0, out _);
+        });
     }
 
     /// <summary>The first connected phone, for tray actions that need a target.</summary>
@@ -343,6 +372,7 @@ public sealed class BridgeServer : IAsyncDisposable
             {
                 Log?.Invoke($"{gone.PeerName} disconnected");
                 SessionsChanged?.Invoke();
+                ConsiderLocking(gone.PeerName);
             }
             session?.Dispose();
             connection.CloseResource();
@@ -397,6 +427,7 @@ public sealed class BridgeServer : IAsyncDisposable
         _metrics.Dispose();
         _volume.Dispose();
         _screen.Dispose();
+        _phoneMirror.CloseAll();
         _audio.Dispose();
         _automations.CancelAll();
         try { await OnUiThreadAsync(_clipboard.Dispose); } catch { }

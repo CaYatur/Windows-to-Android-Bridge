@@ -91,6 +91,7 @@ public sealed class ClientSession(
             services.Audio.StopAllFor(this);
             services.Files.CancelAllFor(this);
             services.Notifications.Clear(this);
+            services.PhoneMirror.Close(this);
         }
     }
 
@@ -132,8 +133,16 @@ public sealed class ClientSession(
         switch (message.Inner)
         {
             case InnerType.Media:
-                services.Audio.Feed(message.AsMedia());
+            {
+                var packet = message.AsMedia();
+
+                // Dispatched on kind, not blindly handed to the audio service:
+                // the phone screen arrives on this same lane, and feeding video
+                // to a render stream drops it silently.
+                if (packet.Kind == MediaKind.Video) services.PhoneMirror.OnPacket(this, packet);
+                else services.Audio.Feed(packet);
                 return;
+            }
 
             case InnerType.Xfer:
                 await services.Files.OnChunkAsync(message.AsXfer(), ct);
@@ -401,6 +410,16 @@ public sealed class ClientSession(
             case MessageTypesV2.StreamStats:
                 services.Screen.OnStats(this, message.As<StreamStats>());
                 return true;
+
+            case MessageTypesV2.StreamInfo:
+            {
+                // The phone describing its own screen stream: geometry for the
+                // viewer, or the reason it could not start.
+                var info = message.As<StreamInfo>();
+                if (StreamIds.FromName(info.Stream) == StreamIds.PhoneScreen)
+                    services.PhoneMirror.OnInfo(this, info);
+                return true;
+            }
 
             case MessageTypesV2.AudioStart:
             {

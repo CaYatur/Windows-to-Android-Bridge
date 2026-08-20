@@ -24,6 +24,7 @@ public sealed class HostServices
     public required ClipboardBridge Clipboard { get; init; }
     public required FileTransferService Files { get; init; }
     public required ScreenService Screen { get; init; }
+    public required PhoneMirrorService PhoneMirror { get; init; }
     public required AudioService Audio { get; init; }
     public required InputInjector Input { get; init; }
     public required SystemQueryService SystemQuery { get; init; }
