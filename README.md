@@ -11,7 +11,7 @@ from the phone, the watch, a widget or your voice.
 > [what is verified](#what-has-actually-been-run) below — this release is large
 > and the parts that need two machines and a stopwatch are called out honestly.
 
-[cover.png](docs/image/cover.png)
+![cover.png](docs/image/cover.png)
 
 ---
 
