@@ -298,4 +298,20 @@
     <string name="step_call">Başka otomasyon çalıştır</string>
 
     <string name="pc_screen_trackpad">Touchpad</string>
+    <string name="settings_mic_permission">Mikrofon izni gerekiyor. İzin vermek için anahtara tekrar dokunun.</string>
+    <string name="clip_diag_idle">Bu telefonda henüz kopyalama görülmedi.</string>
+    <string name="clip_diag_working">%2$d kopyanın %1$d tanesi otomatik gönderildi.</string>
+    <string name="clip_diag_refused">Kopyalamalar görülüyor ama Android okumayı hâlâ reddediyor. Göndermek için Hızlı Ayarlar döşemesini veya paylaşım menüsünü kullanın.</string>
+    <string name="clip_diag_needs_overlay">Kopyalamalar görülüyor ama Android panoyu yalnızca odaktaki pencerenin sahibi uygulamaya okutur. Otomatik gönderim için "diğer uygulamaların üzerinde göster" iznini verin.</string>
+    <string name="clipboard_via_overlay">Otomatik</string>
+    <string name="clipboard_via_relay">Aktarıcı ile</string>
+    <string name="settings_clipboard_grant_overlay">Otomatik göndermeye izin ver</string>
+    <string name="field_mouse_action">Fare eylemi (move, click, down, up, wheel)</string>
+    <string name="field_x">X</string>
+    <string name="field_y">Y</string>
+    <string name="field_wheel">Tekerlek kademesi (negatif aşağı kaydırır)</string>
+    <string name="field_button">Düğme (left, right, middle)</string>
+    <string name="widget_automation_button">Otomasyon düğmesi</string>
+    <string name="widget_automation_button_desc">Seçtiğiniz bir otomasyonu tek dokunuşla PC üzerinde çalıştırır.</string>
+    <string name="widget_pick_automation">Bir otomasyon seçin</string>
 </resources>

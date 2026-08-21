@@ -36,6 +36,15 @@
     <!-- Ringing the phone from the PC when it is down the side of a sofa -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!--
+        Not for drawing anything. Since Android 10 the clipboard can only be read
+        by the UID that owns the focused window, so automatic "copy on the phone,
+        paste on the PC" needs a window it can focus for a few milliseconds. It is
+        requested from the settings screen, only when the user turns that feature
+        on, and everything else keeps working without it.
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- Scanning the pairing code, and nothing else -->
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -104,6 +113,16 @@
             transparent, has no animation, does its work in onCreate and
             finishes. It is the fallback when the direct read fails.
         -->
+        <activity
+            android:name=".widget.AutomationWidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.WinBridge">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".ui.ClipboardRelayActivity"
             android:exported="false"
@@ -324,6 +343,22 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_automations" />
+        </receiver>
+
+        <!--
+            One automation per placed widget. The configuration activity is what
+            makes "specific automations" possible rather than a fixed list.
+        -->
+        <receiver
+            android:name=".widget.AutomationButtonWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_automation_button">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_automation_button" />
         </receiver>
     </application>
 

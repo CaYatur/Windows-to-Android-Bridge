@@ -154,7 +154,9 @@ class TriggerReceiver : BroadcastReceiver() {
                 Toast.makeText(context, context.getString(R.string.automations_run), Toast.LENGTH_SHORT).show()
             }
 
-            ACTION_CLIPBOARD -> ClipboardBridge.sendViaActivity(context)
+            ACTION_CLIPBOARD -> ClipboardBridge.push(context) { clip ->
+                app.scope.launch { app.client.sendMessage(clip) }
+            }
 
             ACTION_COMMAND -> {
                 val text = intent.getStringExtra(EXTRA_TEXT) ?: return

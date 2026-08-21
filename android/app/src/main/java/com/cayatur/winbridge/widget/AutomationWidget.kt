@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
-import com.cayatur.winbridge.protocol.AutoRunRequest
 
 private val AutomationKey = ActionParameters.Key<String>("automationId")
 
@@ -45,7 +44,7 @@ private val AutomationKey = ActionParameters.Key<String>("automationId")
 class RunAutomationAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val id = parameters[AutomationKey] ?: return
-        WinBridgeApp.instance.client.sendMessage(AutoRunRequest(id = id))
+        WidgetRun.request(context, id)
     }
 }
 
@@ -53,12 +52,15 @@ class AutomationWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Read through the running app rather than a persisted snapshot: unlike
-        // the metrics widgets, this list only matters while there is a link, and
-        // a stale button that fires the wrong automation would be worse than an
-        // empty card.
-        val catalog = WinBridgeApp.instance.state.automations.value
-        val items = catalog?.items.orEmpty().filter { it.enabled && it.approved }.take(4)
+        // The live catalogue when the app is running, the written-down copy when
+        // it is not. The launcher redraws widgets after a reboot, long before
+        // anything has connected, and reading only the live value there is how a
+        // list of buttons turns into an empty card the user has to open the app
+        // to fix.
+        val live = runCatching { WinBridgeApp.instance.state.automations.value }.getOrNull()
+        val items = (live?.items ?: AutomationCache.read(context))
+            .filter { it.enabled && it.approved }
+            .take(4)
 
         provideContent {
             GlanceTheme {

@@ -28,9 +28,17 @@ from the phone, the watch, a widget or your voice.
 
 ### Clipboard
 
-- Phone → PC and PC → phone, **both off by default**.
-- Also reachable from a Quick Settings tile, a launcher shortcut, the watch, and
-  the share sheet.
+- Phone → PC and PC → phone, **both off by default**, and each direction has a
+  switch on *both* machines. Turning one on and not the other is the usual
+  reason a clipboard "does not arrive"; each side now says so rather than
+  dropping it in silence.
+- Copies are sent as they happen. Since Android 10 the clipboard may only be
+  read by the app that owns the focused window, so the phone tries in order: a
+  direct read (free whenever WinBridge is in front), then a one-pixel focus
+  window if "display over other apps" has been allowed, then the relay activity.
+  The settings screen reports which rung is actually answering on that phone.
+- Also reachable from a Quick Settings tile, a launcher shortcut, the watch, the
+  share sheet, and **Get clipboard from phone** in the Windows tray menu.
 
 ### Files
 
@@ -86,13 +94,20 @@ The honest, complete version: [docs/ASSISTANT.md](docs/ASSISTANT.md)
 ### Still here from 0.1.x
 
 Now playing as a real Android media session, CPU/GPU/RAM/network/battery,
-volume, power actions, five home screen widgets, and the Wear OS app.
+volume, power actions, six home screen widgets — including an **automation
+button** you point at one automation when you place it — and the Wear OS app.
 
 ### Wear OS
 
 Media and system status, **plus** running automations, a trackpad for the PC,
 voice commands, "what is on my PC screen" read on the wrist, and a clipboard
 button. Three tiles.
+
+Automations are not *written* on a watch — a step tree is not something anyone
+edits on a 45 mm screen — but they can be run from one three ways: the app's own
+list, the automations tile one swipe from the watch face, and a **complication**
+on the face itself, configured per slot, so the one routine you run constantly
+is zero taps away.
 
 ---
 
@@ -181,6 +196,11 @@ This release is large, and honesty about testing is worth more than a green tick
   vectors and by one filled-in sample of all 58 v2 messages.
 - Lane priority: control frames overtake a queued backlog of bulk traffic.
 - Media packets are dropped rather than queued without bound.
+- The clipboard fingerprint, pinned to the same vector in both languages.
+- `WinBridge.exe --selftest-capture out.png` reassembles a real screen frame
+  through the tile codec and the packet format.
+- `WinBridge.exe --selftest-automation` saves an automation through the real
+  save path, runs it, and checks that the clipboard actually changed.
 - Both apps and the host compile clean.
 
 **Verified by hand**

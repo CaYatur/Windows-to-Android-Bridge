@@ -59,7 +59,10 @@ class PhoneSink(
     // ---- clipboard ---------------------------------------------------------
 
     override fun onClipboard(clip: ClipboardMessage) {
-        if (!app.store.clipboardFromPc) return
+        if (!app.store.clipboardFromPc) {
+            Log.i(TAG, "clipboard arrived from the PC, but receiving is off on this phone")
+            return
+        }
         if (ClipboardBridge.isEcho(clip)) return
         val text = clip.text ?: return
 
@@ -85,16 +88,13 @@ class PhoneSink(
     }
 
     override fun onClipboardRequested() {
-        if (!app.store.clipboardToPc) return
-        val clip = ClipboardBridge.readDirect(context)
-        if (clip != null) {
-            ClipboardBridge.remember(clip)
-            app.launch { app.client.sendMessage(clip) }
-        } else {
-            // Reading needs focus we do not have in the background, so the relay
-            // borrows it for a frame.
-            ClipboardBridge.sendViaActivity(context)
+        if (!app.store.clipboardToPc) {
+            Log.i(TAG, "PC asked for the clipboard, but sending to the PC is off on this phone")
+            return
         }
+        // Reading needs focus we do not have in the background, so this walks
+        // the ladder rather than assuming any one rung is available.
+        ClipboardBridge.push(context) { clip -> app.launch { app.client.sendMessage(clip) } }
     }
 
     // ---- files -------------------------------------------------------------

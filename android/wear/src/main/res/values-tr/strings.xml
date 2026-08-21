@@ -26,4 +26,6 @@ basılı tut: sağ tık</string>
     <string name="wear_clipboard">Panoyu bilgisayara</string>
     <string name="wear_back">Geri</string>
     <string name="wear_sent">Gönderildi: %1$s</string>
+    <string name="wear_complication_unset">Otomasyon seç</string>
+    <string name="wear_complication_pick">Hangi otomasyon çalışsın?</string>
 </resources>

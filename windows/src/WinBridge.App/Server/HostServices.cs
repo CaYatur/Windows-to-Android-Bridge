@@ -40,6 +40,41 @@ public sealed class HostServices
     public required Action<string> Log { get; init; }
 
     /// <summary>
+    /// A host with everything constructed but nothing started, for the self
+    /// tests.
+    ///
+    /// The self tests run before any WPF application exists, so there is no
+    /// dispatcher to marshal to and <see cref="OnUiThread"/> has to run inline
+    /// on a thread the caller has already made STA. Everything else is built for
+    /// real: a test that swapped the clipboard for a fake would have passed
+    /// happily while the real one was broken.
+    /// </summary>
+    public static HostServices ForSelfTest(BridgeStore store, AutomationService automations)
+    {
+        var clipboard = new ClipboardBridge();
+        return new HostServices
+        {
+            Store = store,
+            Media = new MediaProvider(),
+            Metrics = new SystemMetricsProvider(),
+            Volume = new VolumeProvider(),
+            Power = new PowerProvider(),
+            Clipboard = clipboard,
+            Files = new FileTransferService(store),
+            Screen = new ScreenService(store),
+            PhoneMirror = new PhoneMirrorService(store),
+            Audio = new AudioService(store),
+            Input = new InputInjector(),
+            SystemQuery = new SystemQueryService(),
+            Automations = automations,
+            Notifications = new NotificationHub(store),
+            DescribePeer = () => new PeerEvent(),
+            OnUiThread = action => { action(); return Task.CompletedTask; },
+            Log = _ => { },
+        };
+    }
+
+    /// <summary>
     /// Describes what this host will accept right now. Recomputed on every send
     /// rather than cached, because the answer changes when the user flips a
     /// switch and a stale capability set means a phone offering a button that

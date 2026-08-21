@@ -251,6 +251,48 @@ titles plus a reason, rather than the feature failing to load.
 
 ---
 
+## ADR-11 — The clipboard read is a ladder, and it says which rung answered
+
+**Decision.** Reading the phone clipboard is a chain of attempts — direct, then
+a one-pixel focus window where "display over other apps" is granted, then the
+relay activity — and the settings screen reports which one is working on that
+phone.
+
+**Why.** Since Android 10 the clipboard may only be read by the UID that owns
+the focused window. A foreground service owns none, and the exact rule shifts
+between versions and OEM builds. Writing this against any single rule produces a
+feature that silently does nothing on the devices where the rule is not what the
+documentation says — and "nothing" is indistinguishable from a bug, from a
+disabled switch, and from a broken PC. The ladder means the best available route
+is taken automatically; reporting the rung means the failure is legible.
+
+**Consequence.** Automatic capture is best-effort rather than guaranteed. The
+gesture routes — the Quick Settings tile, the launcher shortcut and the share
+sheet — are always permitted, because a tap is a user gesture, and they remain
+the answer on a phone where the background read is refused.
+
+---
+
+## ADR-12 — The clipboard fingerprint is protocol, not a helper
+
+**Decision.** The fingerprint that identifies a clipboard lives in the shared
+protocol module on both sides, is specified in `docs/PROTOCOL.md`, and is
+asserted against the same pinned vector by both test suites.
+
+**Why.** It began as a private helper in each app, and the two drifted: the same
+sixteen bytes of SHA-256, hex on Windows and base64 on Android. Nothing failed
+loudly. The two apps simply stopped recognising their own text coming back, so
+every clipboard the phone sent was applied on the PC, seen there as a fresh copy,
+and sent straight back — a loop that only stayed invisible because one of the
+switches happened to be off.
+
+**Consequence.** Changing the encoding now breaks a test rather than a user's
+desk. Each side also fingerprints the text it actually holds rather than
+trusting the value in the message, so a peer that gets this wrong is ignored
+instead of starting the loop again.
+
+---
+
 ## Repository layout
 
 ```

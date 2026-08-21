@@ -12,6 +12,7 @@ import com.cayatur.winbridge.net.BluetoothCarrier
 import com.cayatur.winbridge.net.BridgeClient
 import com.cayatur.winbridge.net.BridgeState
 import com.cayatur.winbridge.net.TcpCarrier
+import androidx.glance.appwidget.updateAll
 import com.cayatur.winbridge.wear.WearPublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,10 +84,20 @@ class WinBridgeApp : Application() {
         // reachable from an assistant routine or the home screen.
         scope.launch {
             state.automations.collectLatest { catalog ->
-                Shortcuts.publish(this@WinBridgeApp, catalog?.items.orEmpty(), store.publishShortcuts)
+                val items = catalog?.items.orEmpty()
+                Shortcuts.publish(this@WinBridgeApp, items, store.publishShortcuts)
+
+                // Written down as well as pushed: a widget is drawn by the
+                // launcher, which may be doing so while this process is dead.
+                com.cayatur.winbridge.widget.AutomationCache.write(this@WinBridgeApp, items)
+                runCatching {
+                    com.cayatur.winbridge.widget.AutomationWidget().updateAll(this@WinBridgeApp)
+                    com.cayatur.winbridge.widget.AutomationButtonWidget().updateAll(this@WinBridgeApp)
+                }
+
                 WearPublisher.publishAutomations(
                     this@WinBridgeApp,
-                    catalog?.items.orEmpty(),
+                    items,
                     catalog?.shellEnabled == true,
                 )
             }

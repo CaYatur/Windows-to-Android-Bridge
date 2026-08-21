@@ -29,8 +29,17 @@ kurun: telefondan, saatten, bir widget'tan ya da sesinizle.
 
 ### Pano
 
-- Telefon → bilgisayar ve bilgisayar → telefon, **ikisi de varsayılan kapalı**.
-- Hızlı Ayarlar döşemesi, kısayol, saat ve paylaşım menüsünden de erişilebilir.
+- Telefon → bilgisayar ve bilgisayar → telefon, **ikisi de varsayılan kapalı**;
+  her yönün *iki* cihazda da ayrı anahtarı var. Panonun "gelmemesinin" en sık
+  nedeni birinin açık, diğerinin kapalı olmasıdır; artık iki taraf da sessizce
+  atmak yerine bunu söylüyor.
+- Kopyalamalar anında gönderilir. Android 10'dan beri panoyu yalnızca odaktaki
+  pencerenin sahibi uygulama okuyabildiği için telefon sırayla dener: doğrudan
+  okuma (WinBridge öndeyken bedava), "diğer uygulamaların üzerinde göster" izni
+  verilmişse bir piksellik odak penceresi, sonra aktarıcı ekran. Ayarlar ekranı
+  o telefonda hangi basamağın yanıt verdiğini söyler.
+- Hızlı Ayarlar döşemesi, kısayol, saat, paylaşım menüsü ve Windows tepsi
+  menüsündeki **Panoyu telefondan al** ile de erişilebilir.
 
 ### Dosyalar
 
@@ -88,7 +97,8 @@ Dürüst ve tam açıklama: [docs/ASSISTANT.md](docs/ASSISTANT.md)
 ### 0.1.x'ten gelenler
 
 Gerçek bir Android medya oturumu olarak "şimdi çalıyor",
-CPU/GPU/RAM/ağ/pil, ses düzeyi, güç işlemleri, beş ana ekran widget'ı ve
+CPU/GPU/RAM/ağ/pil, ses düzeyi, güç işlemleri, altı ana ekran widget'ı —
+yerleştirirken tek bir otomasyona bağladığınız **otomasyon düğmesi** dahil — ve
 Wear OS uygulaması.
 
 ### Wear OS
@@ -96,6 +106,12 @@ Wear OS uygulaması.
 Medya ve sistem durumuna **ek olarak**: otomasyon çalıştırma, bilgisayar için
 touchpad, sesli komut, "bilgisayar ekranında ne var" yanıtının bilekte okunması
 ve pano düğmesi. Üç döşeme.
+
+Otomasyonlar saatte *yazılmaz* — bir adım ağacını kimse 45 mm ekranda düzenlemez
+— ama üç yoldan çalıştırılabilir: uygulamanın kendi listesi, saat kadranından bir
+kaydırma uzaktaki otomasyon döşemesi ve kadranın üzerine yerleştirilen, her yuva
+için ayrı seçilen bir **komplikasyon**; böylece sürekli çalıştırdığınız rutin
+sıfır dokunuş uzağınızda olur.
 
 ---
 
@@ -185,6 +201,11 @@ Bu sürüm büyük; test konusunda dürüstlük yeşil bir tikten daha değerli.
   her birinin doldurulmuş birer örneğiyle birbirine sabitlendi.
 - Şerit önceliği: kontrol çerçeveleri, biriken toplu trafiği geçiyor.
 - Medya paketleri sınırsız kuyruğa alınmak yerine düşürülüyor.
+- Pano parmak izi, iki dilde de aynı vektöre sabitlendi.
+- `WinBridge.exe --selftest-capture out.png` gerçek bir ekran karesini döşeme
+  kodlayıcısı ve paket biçimi üzerinden yeniden birleştiriyor.
+- `WinBridge.exe --selftest-automation` bir otomasyonu gerçek kayıt yolundan
+  kaydedip çalıştırıyor ve panonun gerçekten değiştiğini doğruluyor.
 - Her iki uygulama ve host temiz derleniyor.
 
 **Elle doğrulanan**

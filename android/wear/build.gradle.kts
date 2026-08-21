@@ -85,6 +85,8 @@ dependencies {
     implementation(libs.wear.protolayout)
     implementation(libs.wear.protolayout.material)
     implementation(libs.wear.protolayout.expression)
+    // Complications: the watch-face equivalent of a home-screen widget.
+    implementation(libs.wear.complications.datasource)
     // Tiles return ListenableFuture, which is Guava's type.
     implementation(libs.guava)
 

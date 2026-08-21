@@ -26,4 +26,6 @@ hold for right click</string>
     <string name="wear_clipboard">Clipboard to PC</string>
     <string name="wear_back">Back</string>
     <string name="wear_sent">Sent: %1$s</string>
+    <string name="wear_complication_unset">Pick automation</string>
+    <string name="wear_complication_pick">Run which automation?</string>
 </resources>

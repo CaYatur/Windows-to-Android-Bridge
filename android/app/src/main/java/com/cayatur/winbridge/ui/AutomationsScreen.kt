@@ -495,6 +495,27 @@ private fun StepFields(step: AutoStep, onChange: (AutoStep) -> Unit) {
 
         StepTypes.POWER -> field(stringResource(R.string.field_power_action), step.action, { onChange(step.copy(action = it)) })
 
+        // These three used to fall through to the catch-all below and render no
+        // fields at all, which meant a "set the PC clipboard" step could be
+        // added, saved and run — and always ran with empty text, because there
+        // had never been anywhere to type any.
+        StepTypes.CLIP_SET -> field(stringResource(R.string.field_text), step.text, { onChange(step.copy(text = it)) })
+
+        StepTypes.CLIP_GET ->
+            field(stringResource(R.string.field_store_in), step.name, { onChange(step.copy(name = it.ifBlank { null })) })
+
+        StepTypes.MOUSE -> {
+            field(stringResource(R.string.field_mouse_action), step.action, { onChange(step.copy(action = it)) })
+            when (step.action) {
+                "move" -> {
+                    number(stringResource(R.string.field_x), step.number) { onChange(step.copy(number = it)) }
+                    field(stringResource(R.string.field_y), step.value, { onChange(step.copy(value = it)) })
+                }
+                "wheel" -> number(stringResource(R.string.field_wheel), step.number) { onChange(step.copy(number = it)) }
+                else -> field(stringResource(R.string.field_button), step.key, { onChange(step.copy(key = it)) })
+            }
+        }
+
         StepTypes.FILE -> {
             field(stringResource(R.string.field_file_action), step.action, { onChange(step.copy(action = it)) })
             field(stringResource(R.string.field_path), step.path, { onChange(step.copy(path = it)) }, mono = true)

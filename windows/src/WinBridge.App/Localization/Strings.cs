@@ -45,6 +45,8 @@ public static class Strings
         ["tray.send"] = "Send files to phone…",
         ["tray.phonescreen"] = "Show phone screen",
         ["tray.clipboard"] = "Send clipboard to phone",
+        ["tray.clipboard.pull"] = "Get clipboard from phone",
+        ["clip.off.pc.receive"] = "Receiving the clipboard from the phone is off in Features.",
         ["tray.exit"] = "Exit",
         ["tray.tooltip.idle"] = "WinBridge — no phone connected",
         ["tray.tooltip.connected"] = "WinBridge — {0} connected",
@@ -178,6 +180,9 @@ public static class Strings
         ["nophone.title"] = "No phone connected",
         ["nophone.body"] = "Connect a phone and try again.",
         ["clip.copied"] = "Copied from {0}",
+        ["clip.off.pc"] = "Sending the clipboard to the phone is off in Features.",
+        ["clip.off.phone"] = "Sent, but {0} has receiving the clipboard turned off.",
+        ["clip.empty"] = "There is nothing on the clipboard that can be sent.",
     };
 
     private static readonly Dictionary<string, string> Turkish = new()
@@ -188,6 +193,8 @@ public static class Strings
         ["tray.send"] = "Telefona dosya gönder…",
         ["tray.phonescreen"] = "Telefon ekranını göster",
         ["tray.clipboard"] = "Panoyu telefona gönder",
+        ["tray.clipboard.pull"] = "Panoyu telefondan al",
+        ["clip.off.pc.receive"] = "Panoyu telefondan alma, Özellikler bölümünde kapalı.",
         ["tray.exit"] = "Çıkış",
         ["tray.tooltip.idle"] = "WinBridge — bağlı telefon yok",
         ["tray.tooltip.connected"] = "WinBridge — {0} bağlı",
@@ -321,5 +328,8 @@ public static class Strings
         ["nophone.title"] = "Bağlı telefon yok",
         ["nophone.body"] = "Bir telefon bağlayıp tekrar deneyin.",
         ["clip.copied"] = "{0} üzerinde kopyalandı",
+        ["clip.off.pc"] = "Panoyu telefona gönderme, Özellikler bölümünde kapalı.",
+        ["clip.off.phone"] = "Gönderildi, ancak {0} cihazında pano alma kapalı.",
+        ["clip.empty"] = "Panoda gönderilebilecek bir şey yok.",
     };
 }

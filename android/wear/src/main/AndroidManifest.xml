@@ -105,6 +105,43 @@
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:theme="@android:style/Theme.NoDisplay" />
+
+        <!--
+            An automation on the watch face itself. Complications are the closest
+            thing a watch has to a home-screen widget: no swipe, no app, one tap.
+        -->
+        <service
+            android:name=".AutomationComplication"
+            android:exported="true"
+            android:label="@string/wear_automations"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,LONG_TEXT" />
+            <!-- The list only changes when the phone pushes a new one, and that
+                 push already asks for a redraw, so there is nothing to poll. -->
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+            <meta-data
+                android:name="android.support.wearable.complications.PROVIDER_CONFIG_ACTION"
+                android:value="com.cayatur.winbridge.wear.CONFIG_COMPLICATION" />
+        </service>
+
+        <activity
+            android:name=".ComplicationConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="com.cayatur.winbridge.wear.CONFIG_COMPLICATION" />
+                <category android:name="android.support.wearable.complications.category.PROVIDER_CONFIG" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

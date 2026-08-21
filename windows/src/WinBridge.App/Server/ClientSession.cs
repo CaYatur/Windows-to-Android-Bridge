@@ -303,8 +303,12 @@ public sealed class ClientSession(
                 return true;
 
             case MessageTypesV2.ClipboardGet:
-                await SendClipboardAsync(ct);
+            {
+                string? refusal = await SendClipboardAsync(ct);
+                if (refusal is not null)
+                    await SendErrorAsync("clipboard_unavailable", refusal, ct);
                 return true;
+            }
 
             default:
                 return false;
@@ -317,12 +321,14 @@ public sealed class ClientSession(
     {
         if (!services.Store.Settings.Clipboard.FromPhone)
         {
+            Log?.Invoke($"clipboard from {PeerName} refused: receiving is off on this PC");
             await SendErrorAsync("clipboard_disabled", "receiving is off on the PC", ct);
             return;
         }
 
         bool applied = false;
         await services.OnUiThread(() => applied = services.Clipboard.Apply(clip));
+        if (!applied) Log?.Invoke($"clipboard from {PeerName} could not be applied");
 
         if (applied && services.Store.Settings.Clipboard.Notify)
         {
@@ -334,22 +340,59 @@ public sealed class ClientSession(
         if (applied) Log?.Invoke($"clipboard from {PeerName} applied");
     }
 
-    public async Task SendClipboardAsync(CancellationToken ct)
+    /// <summary>
+    /// Pushes what is on the Windows clipboard to the phone.
+    ///
+    /// Returns why it did not, rather than nothing, because there are four
+    /// separate reasons this can be a no-op — the switch here, the switch on the
+    /// phone, an empty clipboard, and a format we do not carry — and from the
+    /// outside all four look identical to a broken feature.
+    /// </summary>
+    public async Task<string?> SendClipboardAsync(CancellationToken ct)
     {
-        if (!services.Store.Settings.Clipboard.ToPhone) return;
+        if (!services.Store.Settings.Clipboard.ToPhone)
+            return Strings.Get("clip.off.pc");
 
         ClipboardMessage? clip = null;
         await services.OnUiThread(() => clip = services.Clipboard.Read());
-        if (clip is null) return;
+        if (clip is null) return Strings.Get("clip.empty");
 
         await session.SendJsonAsync(clip, ct);
+
+        // Sent anyway: the phone is the side that decides, and a stale feature
+        // set here should not stop a clipboard the phone would have accepted.
+        if (!PeerFeatures.Clipboard.Receive)
+        {
+            Log?.Invoke($"clipboard sent to {PeerName}, which reports receiving as off");
+            return Strings.Format("clip.off.phone", PeerName);
+        }
+
+        Log?.Invoke($"clipboard sent to {PeerName} ({clip.Text?.Length ?? 0} chars)");
+        return null;
     }
 
     /// <summary>Called by the host when the Windows clipboard changes.</summary>
-    public Task PushClipboardAsync(ClipboardMessage clip, CancellationToken ct) =>
-        services.Store.Settings.Clipboard.ToPhone
-            ? session.SendJsonAsync(clip, ct)
-            : Task.CompletedTask;
+    private bool _warnedClipboardOff;
+
+    public Task PushClipboardAsync(ClipboardMessage clip, CancellationToken ct)
+    {
+        if (!services.Store.Settings.Clipboard.ToPhone) return Task.CompletedTask;
+
+        // Two switches guard one direction — one here, one on the phone — and
+        // with the second one off the copy leaves this machine and is dropped in
+        // silence. Said once per session: every copy would be nagging, never
+        // saying it is the bug report we keep getting.
+        if (!PeerFeatures.Clipboard.Receive && !_warnedClipboardOff)
+        {
+            _warnedClipboardOff = true;
+            services.Notifications.Toast(
+                Strings.Get("features.clipboard"), Strings.Format("clip.off.phone", PeerName), "warn");
+            Log?.Invoke($"{PeerName} has receiving the clipboard turned off; pushes will be dropped there");
+        }
+
+        Log?.Invoke($"clipboard change pushed to {PeerName} ({clip.Text?.Length ?? 0} chars)");
+        return session.SendJsonAsync(clip, ct);
+    }
 
     // ---- files -------------------------------------------------------------
 
@@ -539,7 +582,11 @@ public sealed class ClientSession(
             await SendErrorAsync("input_disabled", "remote input is off on the PC", ct);
             return true;
         }
-        if (!services.Screen.IsInteractive(this))
+        // Only a *mirror* can be view-only. A watch driving the pointer, or a
+        // key sent from an automation, is not looking at a stream at all — and
+        // refusing those because no mirror was open is why the watch trackpad
+        // moved nothing while reporting no error the user could see.
+        if (services.Screen.HasSession(this) && !services.Screen.IsInteractive(this))
         {
             await SendErrorAsync("input_not_interactive", "this mirror session is view-only", ct);
             return true;
@@ -547,6 +594,39 @@ public sealed class ClientSession(
 
         await services.OnUiThread(() => Inject(message));
         return true;
+    }
+
+    private double _mouseRemainderX;
+    private double _mouseRemainderY;
+
+    /// <summary>
+    /// Turns a trackpad delta into pixels.
+    ///
+    /// Both trackpads — the one on the phone and the one on the watch — send
+    /// movement as a fraction of their own surface, because that is the only
+    /// unit a sender knows without being told the desktop size. Casting that
+    /// fraction straight to an int, which is what used to happen here, makes
+    /// every ordinary drag exactly zero pixels: the messages arrive, nothing
+    /// moves, and there is nothing in any log to say why.
+    ///
+    /// The remainder is carried between messages so that a slow, careful drag
+    /// still moves the pointer instead of being rounded away one message at a
+    /// time.
+    /// </summary>
+    private void MoveRelative(double dx, double dy)
+    {
+        var bounds = System.Windows.Forms.SystemInformation.VirtualScreen;
+
+        double x = dx * bounds.Width + _mouseRemainderX;
+        double y = dy * bounds.Height + _mouseRemainderY;
+
+        int stepX = (int)Math.Truncate(x);
+        int stepY = (int)Math.Truncate(y);
+
+        _mouseRemainderX = x - stepX;
+        _mouseRemainderY = y - stepY;
+
+        if (stepX != 0 || stepY != 0) services.Input.MoveRelative(stepX, stepY);
     }
 
     private void Inject(InboundMessage message)
@@ -557,7 +637,7 @@ public sealed class ClientSession(
             {
                 var command = message.As<InputMouse>();
 
-                if (command.Relative) services.Input.MoveRelative((int)command.Dx, (int)command.Dy);
+                if (command.Relative) MoveRelative(command.Dx, command.Dy);
                 else if (services.Screen.TryMapToDesktop(this, command.X, command.Y, out int x, out int y))
                     services.Input.MoveAbsolute(x, y);
 

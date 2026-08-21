@@ -101,6 +101,9 @@ public sealed class ScreenService(BridgeStore store) : IDisposable
     public bool IsInteractive(IPeerLink link) =>
         _streams.TryGetValue(link, out var stream) && stream.Interact;
 
+    /// <summary>True when this link is being sent a picture of the screen.</summary>
+    public bool HasSession(IPeerLink link) => _streams.ContainsKey(link);
+
     /// <summary>Maps a normalised point from the streamed surface back to desktop pixels.</summary>
     public bool TryMapToDesktop(IPeerLink link, double x, double y, out int screenX, out int screenY)
     {

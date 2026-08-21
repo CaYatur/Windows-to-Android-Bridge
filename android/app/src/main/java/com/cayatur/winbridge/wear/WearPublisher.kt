@@ -144,7 +144,9 @@ class WearCommandService : WearableListenerService() {
                 WearCommands.KEY -> key(app, action)
 
                 WearCommands.CLIPBOARD ->
-                    com.cayatur.winbridge.feature.ClipboardBridge.sendViaActivity(applicationContext)
+                    com.cayatur.winbridge.feature.ClipboardBridge.push(applicationContext) { clip ->
+                        app.launch { app.client.sendMessage(clip) }
+                    }
 
                 WearCommands.DESCRIBE -> app.client.sendMessage(DescribeRequest(ocr = true))
 

@@ -5,14 +5,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Base64
 import android.util.Log
 import com.cayatur.winbridge.R
 import com.cayatur.winbridge.data.SecureStore
 import com.cayatur.winbridge.net.TAG
+import com.cayatur.winbridge.protocol.ClipboardFingerprint
 import com.cayatur.winbridge.protocol.ClipboardMessage
 import com.cayatur.winbridge.ui.ClipboardRelayActivity
-import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -78,9 +77,19 @@ object ClipboardBridge {
      */
     fun read(context: Context): ClipboardMessage? = readDirect(context)
 
+    /**
+     * Wraps text as a clipboard message.
+     *
+     * Deliberately free of side effects. It used to stamp [lastHash] as it
+     * built, which meant every caller that then asked "is this our own echo?"
+     * was comparing the hash against itself and always got yes — so the
+     * automatic watcher recognised every genuine copy as an echo and sent
+     * nothing, on every device, regardless of what Android allowed. Remembering
+     * is now something a caller does on purpose, once it knows which direction
+     * the text is travelling.
+     */
     fun build(text: String): ClipboardMessage {
         val hash = fingerprint(text.toByteArray())
-        lastHash.set(hash)
         return ClipboardMessage(
             format = if (looksLikeUri(text)) "uri" else "text",
             text = text,
@@ -98,9 +107,10 @@ object ClipboardBridge {
             val label = clip.label ?: "WinBridge"
             manager(context).setPrimaryClip(ClipData.newPlainText(label, text))
 
-            // setPrimaryClip does not throw on a refusal on every build, so the
-            // write is confirmed by reading it back where that is allowed.
-            lastHash.set(clip.hash ?: fingerprint(text.toByteArray()))
+            // Fingerprinted from the text actually written, not from what the
+            // sender claimed: the echo guard has to hold even if the other end
+            // sends a hash of something else, or none at all.
+            lastHash.set(fingerprint(text.toByteArray()))
             lastTier.set("direct")
             true
         } catch (e: SecurityException) {
@@ -140,22 +150,49 @@ object ClipboardBridge {
         runCatching { context.startActivity(intent) }
     }
 
+    /**
+     * The whole read ladder, for callers that just want the clipboard on the PC
+     * and do not care which rung got it there: direct, then a borrowed focus
+     * window, then the relay activity.
+     *
+     * Ordered by how little the user notices. The activity is last because
+     * starting one from the background is itself restricted on Android 10 and
+     * later, and where it is allowed it still pauses whatever they were copying
+     * from — a real cost for something that is meant to be invisible.
+     */
+    fun push(context: Context, send: (ClipboardMessage) -> Unit) {
+        val direct = readDirect(context)
+        if (direct != null) {
+            remember(direct)
+            send(direct)
+            return
+        }
+
+        ClipboardFocus.read(context) { borrowed ->
+            if (borrowed != null) {
+                lastTier.set("overlay")
+                remember(borrowed)
+                send(borrowed)
+            } else {
+                sendViaActivity(context)
+            }
+        }
+    }
+
     // ---- echo suppression ---------------------------------------------------
 
     /** True when this is the clipboard we just set, arriving back at us. */
     fun isEcho(clip: ClipboardMessage): Boolean {
-        val hash = clip.hash ?: clip.text?.let { fingerprint(it.toByteArray()) }
+        val hash = clip.text?.let { fingerprint(it.toByteArray()) } ?: clip.hash
         return hash != null && hash == lastHash.get()
     }
 
     fun remember(clip: ClipboardMessage) {
-        lastHash.set(clip.hash ?: clip.text?.let { fingerprint(it.toByteArray()) })
+        lastHash.set(clip.text?.let { fingerprint(it.toByteArray()) } ?: clip.hash)
     }
 
-    fun fingerprint(bytes: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-        return Base64.encodeToString(digest.copyOf(16), Base64.NO_WRAP or Base64.NO_PADDING)
-    }
+    /** Delegates to the protocol module, so both apps and the tests agree. */
+    fun fingerprint(bytes: ByteArray): String = ClipboardFingerprint.of(bytes)
 
     private fun looksLikeUri(text: String): Boolean =
         text.length < 2048 && !text.contains('\n') &&
@@ -164,7 +201,8 @@ object ClipboardBridge {
     /** Human-readable tier for the diagnostics row in settings. */
     fun describeTier(context: Context): String = when (lastTier.get()) {
         "direct" -> context.getString(R.string.settings_granted)
-        "activity" -> "via relay"
+        "overlay" -> context.getString(R.string.clipboard_via_overlay)
+        "activity" -> context.getString(R.string.clipboard_via_relay)
         "notification" -> context.getString(R.string.clipboard_blocked)
         else -> "—"
     }

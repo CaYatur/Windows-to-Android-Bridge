@@ -299,4 +299,20 @@
     <string name="step_call">Run another automation</string>
 
     <string name="pc_screen_trackpad">Trackpad</string>
+    <string name="settings_mic_permission">Microphone access is needed. Tap the switch again to allow it.</string>
+    <string name="clip_diag_idle">No copy seen yet on this phone.</string>
+    <string name="clip_diag_working">%1$d of %2$d copies sent automatically.</string>
+    <string name="clip_diag_refused">Copies are being seen, but Android is still refusing the read. Use the Quick Settings tile or the share sheet to send one.</string>
+    <string name="clip_diag_needs_overlay">Copies are being seen, but Android only lets an app read the clipboard while it owns the focused window. Allow "display over other apps" to send them automatically.</string>
+    <string name="clipboard_via_overlay">Automatic</string>
+    <string name="clipboard_via_relay">Via relay</string>
+    <string name="settings_clipboard_grant_overlay">Allow automatic sending</string>
+    <string name="field_mouse_action">Mouse action (move, click, down, up, wheel)</string>
+    <string name="field_x">X</string>
+    <string name="field_y">Y</string>
+    <string name="field_wheel">Wheel notches (negative scrolls down)</string>
+    <string name="field_button">Button (left, right, middle)</string>
+    <string name="widget_automation_button">Automation button</string>
+    <string name="widget_automation_button_desc">Runs one chosen automation on the PC with a single tap.</string>
+    <string name="widget_pick_automation">Pick an automation</string>
 </resources>

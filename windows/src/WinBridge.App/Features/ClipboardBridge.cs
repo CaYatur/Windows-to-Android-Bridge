@@ -1,6 +1,5 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Interop;
@@ -172,13 +171,24 @@ public sealed class ClipboardBridge : IDisposable
 
                 var decoder = BitmapFrame.Create(
                     new MemoryStream(bytes), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                _lastAppliedHash = message.Hash ?? Fingerprint(bytes);
+
+                // Fingerprinted after a round trip through our own encoder,
+                // because that is what Read will hand back a moment from now.
+                // Hashing the bytes as they arrived compares two different PNGs
+                // of the same picture, which never matches, and the image goes
+                // round the loop for ever.
+                _lastAppliedHash = Fingerprint(EncodePng(decoder));
                 Clipboard.SetImage(decoder);
                 return true;
             }
 
             if (string.IsNullOrEmpty(message.Text)) return false;
-            _lastAppliedHash = message.Hash ?? Fingerprint(Encoding.UTF8.GetBytes(message.Text));
+
+            // Fingerprinted here rather than taken from the message: this guard
+            // is what stops the two machines handing the same string back and
+            // forth for ever, and it must not depend on the other end having
+            // computed it the same way.
+            _lastAppliedHash = Fingerprint(Encoding.UTF8.GetBytes(message.Text));
 
             // SetText can throw if another app is mid-write; the retry keeps a
             // transient clash from losing the phone clipboard entirely.
@@ -215,9 +225,8 @@ public sealed class ClipboardBridge : IDisposable
         Uri.TryCreate(text.Trim(), UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
-    /// <summary>First 16 bytes of SHA-256, hex. Enough to recognise our own echo.</summary>
-    public static string Fingerprint(byte[] data) =>
-        Convert.ToHexString(SHA256.HashData(data).AsSpan(0, 16)).ToLowerInvariant();
+    /// <summary>Delegates to the protocol module, so both ends and the tests agree.</summary>
+    public static string Fingerprint(byte[] data) => ClipboardFingerprint.Of(data);
 
     public void Dispose()
     {

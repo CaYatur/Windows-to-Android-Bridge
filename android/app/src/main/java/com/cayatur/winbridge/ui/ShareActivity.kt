@@ -44,6 +44,9 @@ class ShareActivity : Activity() {
 
             !text.isNullOrBlank() -> {
                 val clip = ClipboardBridge.build(text)
+                // Remembered so the copy the PC echoes back is not applied here
+                // a second time, which would raise another change event.
+                ClipboardBridge.remember(clip)
                 app.scope.launch { app.client.sendMessage(clip) }
                 toast(getString(R.string.clipboard_sent))
             }

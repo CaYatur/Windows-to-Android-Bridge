@@ -398,6 +398,29 @@ the chosen folder.
 
 ---
 
+## 8b. Clipboard fingerprints
+
+`cb.set` carries a `hash` alongside the text. It is the **first 16 bytes of
+SHA-256 over the UTF-8 text, lowercase hex** — 32 characters.
+
+This is normative, not an implementation detail. Each side stores the
+fingerprint of whatever it last wrote to its own clipboard, and drops an
+incoming clipboard whose fingerprint matches: that is the only thing standing
+between the two machines and an endless game of catch with the same string. Both
+sides fingerprint the text they actually hold rather than trusting the value in
+the message, so a peer that computes it differently is merely ignored instead of
+starting a loop, and both test suites assert the same pinned vector:
+
+```
+"WinBridge clipboard fingerprint vector — panoyu paylaş 42"
+  → cd00c6119b8e5ea05aeacacacb769e12
+```
+
+Images are fingerprinted after a round trip through the receiver's own PNG
+encoder, because that is the byte sequence it will read back a moment later.
+
+---
+
 ## 9. Message index (v2)
 
 Clipboard: `cb.set`, `cb.get`

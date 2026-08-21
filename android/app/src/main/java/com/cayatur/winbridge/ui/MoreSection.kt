@@ -1,7 +1,12 @@
 package com.cayatur.winbridge.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,6 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cayatur.winbridge.R
 import com.cayatur.winbridge.WinBridgeApp
 import com.cayatur.winbridge.feature.ClipboardBridge
+import com.cayatur.winbridge.feature.ClipboardFocus
+import com.cayatur.winbridge.feature.ClipboardWatcher
 import com.cayatur.winbridge.protocol.DescribeRequest
 import com.cayatur.winbridge.service.NotificationRelay
 import com.cayatur.winbridge.service.RemoteInputService
@@ -47,6 +54,22 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
     var refresh by remember { mutableIntStateOf(0) }
     val accessibilityOn = remember(refresh) { RemoteInputService.isEnabled() }
     val notificationsOn = remember(refresh) { NotificationRelay.isGranted(context) }
+    val microphoneOn = remember(refresh) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+    val overlayOn = remember(refresh) { ClipboardFocus.granted(context) }
+
+    // Asked for when the microphone switch is turned on, not during setup: a
+    // permission prompt for a feature nobody has asked for yet is the kind of
+    // thing people deny out of hand, and then it is denied for good.
+    val microphonePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { allowed ->
+        app.store.micToPc = allowed
+        app.announceFeatures()
+        refresh++
+    }
 
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
 
@@ -60,7 +83,14 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
 
         FlowActions(
             onScreen = onOpenScreen,
-            onClipboard = { ClipboardBridge.sendViaActivity(context) },
+            onClipboard = {
+                // The app is in front when this is tapped, so the direct read
+                // almost always answers and nothing flashes on screen; the
+                // ladder is there for the case where it does not.
+                ClipboardBridge.push(context) { clip ->
+                    scope.launch { app.client.sendMessage(clip) }
+                }
+            },
             onVoice = onVoice,
             onDescribe = {
                 scope.launch { app.client.sendMessage(DescribeRequest(ocr = true)) }
@@ -126,6 +156,27 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
 
         Hint(stringResource(R.string.settings_clipboard_hint))
 
+        if (app.store.clipboardToPc) {
+            // What is actually happening on this phone, not what the docs say
+            // should happen: the rule differs across versions and OEM builds,
+            // and a toggle that is on while nothing arrives needs an answer.
+            Hint(ClipboardWatcher.describe(context))
+
+            if (!overlayOn) {
+                Spacer(Modifier.height(4.dp))
+                TextButton(onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:" + context.packageName),
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                }) { Text(stringResource(R.string.settings_clipboard_grant_overlay)) }
+            }
+        }
+
         Toggle(
             stringResource(R.string.settings_files),
             app.store.fileTransferEnabled,
@@ -156,8 +207,17 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
         Toggle(stringResource(R.string.settings_audio_from_pc), app.store.audioFromPc) {
             app.store.audioFromPc = it; app.announceFeatures(); refresh++
         }
-        Toggle(stringResource(R.string.settings_mic_to_pc), app.store.micToPc) {
-            app.store.micToPc = it; app.announceFeatures(); refresh++
+        Toggle(stringResource(R.string.settings_mic_to_pc), app.store.micToPc && microphoneOn) { wanted ->
+            if (wanted && !microphoneOn) {
+                microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                app.store.micToPc = wanted
+                app.announceFeatures()
+                refresh++
+            }
+        }
+        if (app.store.micToPc && !microphoneOn) {
+            Hint(stringResource(R.string.settings_mic_permission))
         }
         Toggle(stringResource(R.string.settings_mic_from_pc), app.store.micFromPc) {
             app.store.micFromPc = it; app.announceFeatures(); refresh++

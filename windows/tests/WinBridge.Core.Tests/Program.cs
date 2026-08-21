@@ -3,6 +3,7 @@
 // bringing up the Kotlin client.
 
 using System.Net;
+using System.Text;
 using System.Net.Sockets;
 using WinBridge.Core.Protocol;
 using WinBridge.Core.Tests;
@@ -303,6 +304,25 @@ await Check("media packets are dropped rather than queued without bound", () =>
 
     Assert(accepted < 5000, "no media packet was ever dropped");
     Assert(s.MediaDropped > 0, "drops were not counted");
+    return Task.CompletedTask;
+});
+
+Console.WriteLine();
+await Check("the clipboard fingerprint matches the pinned cross-language vector", () =>
+{
+    // The identical assertion runs in the Kotlin vector tests. Either side
+    // changing encoding fails here rather than shipping as an endless clipboard
+    // ping-pong between a PC and a phone that no longer recognise their own text.
+    Assert(
+        ClipboardFingerprint.Of("WinBridge clipboard fingerprint vector — panoyu paylaş 42")
+            == "cd00c6119b8e5ea05aeacacacb769e12",
+        "the clipboard fingerprint changed encoding");
+
+    Assert(ClipboardFingerprint.Of("").Length == 32, "a fingerprint is not 32 hex characters");
+    Assert(
+        ClipboardFingerprint.Of("winbridge") == ClipboardFingerprint.Of(Encoding.UTF8.GetBytes("winbridge")),
+        "the string and byte overloads disagree");
+
     return Task.CompletedTask;
 });
 

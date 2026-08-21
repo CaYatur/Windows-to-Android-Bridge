@@ -123,6 +123,28 @@ class VectorsTest {
         assertEquals(hex(short), hex(long.copyOfRange(0, 32)))
     }
 
+    /**
+     * Pinned because the two apps compare these strings across the wire.
+     *
+     * The same vector is asserted on the Windows side. If either implementation
+     * changes encoding, one of the two tests fails here rather than the feature
+     * failing silently on a user's desk as an endless clipboard ping-pong.
+     */
+    @Test
+    fun `clipboard fingerprint matches the pinned cross-language vector`() {
+        assertEquals(
+            "cd00c6119b8e5ea05aeacacacb769e12",
+            ClipboardFingerprint.of("WinBridge clipboard fingerprint vector — panoyu paylaş 42"),
+        )
+
+        // Same bytes in, same string out, whichever overload is used.
+        assertEquals(
+            ClipboardFingerprint.of("winbridge"),
+            ClipboardFingerprint.of("winbridge".toByteArray(Charsets.UTF_8)),
+        )
+        assertEquals(32, ClipboardFingerprint.of("").length)
+    }
+
     @Test
     fun `constant time comparison is still correct`() {
         assertTrue(Crypto.constantTimeEquals(byteArrayOf(1, 2, 3), byteArrayOf(1, 2, 3)))

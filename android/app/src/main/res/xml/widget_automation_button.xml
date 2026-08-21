@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One tap, one automation. Deliberately small: this is meant to sit next to the
+    apps someone already taps, not to take a row of the home screen.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="70dp"
+    android:minHeight="70dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:configure="com.cayatur.winbridge.widget.AutomationWidgetConfigActivity"
+    android:previewImage="@drawable/widget_automation_button_preview"
+    android:description="@string/widget_automation_button_desc"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:updatePeriodMillis="0" />
