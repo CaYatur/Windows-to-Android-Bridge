@@ -17,8 +17,8 @@ android {
         applicationId = "com.cayatur.winbridge"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.2.0"
         // English is the base; anything without its own values-XX falls back to it.
         resourceConfigurations += setOf("en", "tr")
     }

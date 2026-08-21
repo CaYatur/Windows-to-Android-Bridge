@@ -21,5 +21,928 @@
     "sealedCounter": 1,
     "sealedPlaintext": "7b2274223a2270696e67222c226563686f223a34327d",
     "sealedFrame": "0000000000000001e8f64c52d5475ed434a02132ae7b29bb27f9fbe43da5939c94feb8493b48cd44fda0cb5fc499"
+  },
+  "messagesV2": {
+    "evt.features": {
+      "t": "evt.features",
+      "v": 2,
+      "clipboard": {
+        "send": true,
+        "receive": true,
+        "maxBytes": 1024
+      },
+      "files": {
+        "enabled": true,
+        "maxChunk": 32768,
+        "autoAccept": true
+      },
+      "screen": {
+        "send": true,
+        "receive": false,
+        "codecs": [
+          "jpeg-tiles"
+        ],
+        "targets": 2,
+        "carrierOk": false
+      },
+      "audio": {
+        "playback": true,
+        "mic": true,
+        "formats": [
+          "pcm_s16le"
+        ],
+        "carrierOk": true
+      },
+      "input": {
+        "send": true,
+        "receive": true,
+        "reason": "ok"
+      },
+      "automations": true,
+      "shell": true,
+      "notifications": true,
+      "describe": true,
+      "ring": true
+    },
+    "cb.set": {
+      "t": "cb.set",
+      "fmt": "text",
+      "text": "merhaba",
+      "hash": "abc123",
+      "label": "PC"
+    },
+    "cb.get": {
+      "t": "cb.get"
+    },
+    "xfer.offer": {
+      "t": "xfer.offer",
+      "id": 9,
+      "name": "notes.txt",
+      "size": 4096,
+      "mime": "text/plain",
+      "sha256": "ff00",
+      "batch": 3,
+      "batchIndex": 1,
+      "batchCount": 2,
+      "path": "sub/notes.txt"
+    },
+    "xfer.accept": {
+      "t": "xfer.accept",
+      "id": 9,
+      "offset": 1024
+    },
+    "xfer.reject": {
+      "t": "xfer.reject",
+      "id": 9,
+      "reason": "declined"
+    },
+    "xfer.progress": {
+      "t": "xfer.progress",
+      "id": 9,
+      "bytes": 2048,
+      "bps": 999
+    },
+    "xfer.done": {
+      "t": "xfer.done",
+      "id": 9,
+      "ok": true,
+      "sha256": "ff00",
+      "savedAs": "C:/x/notes.txt"
+    },
+    "xfer.cancel": {
+      "t": "xfer.cancel",
+      "id": 9,
+      "reason": "user"
+    },
+    "screen.targets": {
+      "t": "screen.targets",
+      "items": [
+        {
+          "id": "m0",
+          "name": "Monitor 1",
+          "kind": "monitor",
+          "w": 1920,
+          "h": 1080,
+          "primary": true
+        }
+      ]
+    },
+    "screen.list": {
+      "t": "screen.list"
+    },
+    "stream.start": {
+      "t": "stream.start",
+      "stream": "pc.screen",
+      "codec": "jpeg-tiles",
+      "maxFps": 45,
+      "quality": 55,
+      "maxEdge": 1600,
+      "target": "m0",
+      "audio": true,
+      "interact": true,
+      "cursor": false
+    },
+    "stream.stop": {
+      "t": "stream.stop",
+      "stream": "pc.screen"
+    },
+    "stream.info": {
+      "t": "stream.info",
+      "stream": "pc.screen",
+      "active": true,
+      "w": 1600,
+      "h": 900,
+      "tileW": 64,
+      "tileH": 64,
+      "cols": 25,
+      "rows": 15,
+      "codec": "jpeg-tiles",
+      "target": "m0",
+      "interact": true
+    },
+    "stream.config": {
+      "t": "stream.config",
+      "stream": "pc.screen",
+      "maxFps": 20,
+      "quality": 40,
+      "maxEdge": 800,
+      "interact": false,
+      "cursor": true
+    },
+    "stream.stats": {
+      "t": "stream.stats",
+      "stream": "pc.screen",
+      "fps": 28.5,
+      "kbps": 3200.25,
+      "rttMs": 14,
+      "decodeMs": 3.5,
+      "dropped": 7,
+      "latencyMs": 55
+    },
+    "audio.start": {
+      "t": "audio.start",
+      "stream": "pc.audio",
+      "rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "frameMs": 40,
+      "device": "dev1"
+    },
+    "audio.stop": {
+      "t": "audio.stop",
+      "stream": "pc.audio"
+    },
+    "audio.info": {
+      "t": "audio.info",
+      "stream": "pc.audio",
+      "active": true,
+      "rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "frameMs": 40,
+      "device": "dev1"
+    },
+    "audio.devices": {
+      "t": "audio.devices",
+      "items": [
+        {
+          "id": "dev1",
+          "name": "Speakers",
+          "flow": "render",
+          "default": true
+        }
+      ]
+    },
+    "audio.route": {
+      "t": "audio.route",
+      "stream": "pc.audio",
+      "device": "dev1"
+    },
+    "input.mouse": {
+      "t": "input.mouse",
+      "action": "wheel",
+      "x": 0.25,
+      "y": 0.75,
+      "button": "middle",
+      "delta": -120,
+      "hdelta": 3,
+      "dx": 0.01,
+      "dy": -0.02,
+      "relative": true
+    },
+    "input.key": {
+      "t": "input.key",
+      "action": "tap",
+      "code": "f5",
+      "mods": [
+        "ctrl",
+        "shift"
+      ],
+      "repeat": 2
+    },
+    "input.text": {
+      "t": "input.text",
+      "text": "gunaydin"
+    },
+    "input.touch": {
+      "t": "input.touch",
+      "action": "move",
+      "pointer": 1,
+      "x": 0.5,
+      "y": 0.5,
+      "pressure": 0.8
+    },
+    "input.gesture": {
+      "t": "input.gesture",
+      "kind": "swipe",
+      "points": [
+        {
+          "x": 0.1,
+          "y": 0.2,
+          "t": 0
+        },
+        {
+          "x": 0.8,
+          "y": 0.2,
+          "t": 200
+        }
+      ],
+      "durationMs": 200,
+      "points2": [
+        {
+          "x": 0.9,
+          "y": 0.9,
+          "t": 0
+        }
+      ]
+    },
+    "input.nav": {
+      "t": "input.nav",
+      "action": "recents"
+    },
+    "input.scroll": {
+      "t": "input.scroll",
+      "x": 0.5,
+      "y": 0.5,
+      "dx": 0,
+      "dy": -0.1
+    },
+    "notif.post": {
+      "t": "notif.post",
+      "key": "k1",
+      "pkg": "com.x",
+      "app": "X",
+      "title": "Title",
+      "text": "Body",
+      "sub": "sub",
+      "big": "big",
+      "when": 1700000000000,
+      "ongoing": true,
+      "category": "msg",
+      "actions": [
+        {
+          "index": 0,
+          "title": "Reply",
+          "reply": true
+        }
+      ],
+      "iconHash": "deadbeef"
+    },
+    "notif.remove": {
+      "t": "notif.remove",
+      "key": "k1"
+    },
+    "notif.action": {
+      "t": "notif.action",
+      "key": "k1",
+      "index": 0,
+      "text": "tamam"
+    },
+    "notif.dismiss": {
+      "t": "notif.dismiss",
+      "key": "k1"
+    },
+    "notif.sync": {
+      "t": "notif.sync"
+    },
+    "notif.state": {
+      "t": "notif.state",
+      "enabled": true,
+      "granted": false,
+      "count": 3,
+      "reason": "no access"
+    },
+    "sys.windowlist": {
+      "t": "sys.windowlist",
+      "items": [
+        {
+          "handle": 123,
+          "title": "Notepad",
+          "process": "notepad",
+          "pid": 42,
+          "active": true,
+          "minimized": false
+        }
+      ]
+    },
+    "sys.windows": {
+      "t": "sys.windows"
+    },
+    "sys.window": {
+      "t": "sys.window",
+      "action": "focus",
+      "handle": 123,
+      "match": "Notepad"
+    },
+    "sys.processlist": {
+      "t": "sys.processlist",
+      "items": [
+        {
+          "pid": 42,
+          "name": "notepad",
+          "memMb": 64,
+          "cpu": 1.5
+        }
+      ]
+    },
+    "sys.processes": {
+      "t": "sys.processes",
+      "top": 10
+    },
+    "sys.process": {
+      "t": "sys.process",
+      "action": "kill",
+      "pid": 42
+    },
+    "sys.describe": {
+      "t": "sys.describe",
+      "target": "m0",
+      "ocr": true,
+      "image": true
+    },
+    "sys.description": {
+      "t": "sys.description",
+      "title": "Notepad",
+      "process": "notepad",
+      "text": "hello",
+      "windows": [
+        "a",
+        "b"
+      ],
+      "w": 800,
+      "h": 600,
+      "imageHash": "cafe"
+    },
+    "sys.notify": {
+      "t": "sys.notify",
+      "title": "Hi",
+      "text": "There",
+      "level": "warn"
+    },
+    "sys.open": {
+      "t": "sys.open",
+      "target": "https://example.invalid"
+    },
+    "phone.ring": {
+      "t": "phone.ring",
+      "action": "start",
+      "seconds": 15
+    },
+    "phone.state": {
+      "t": "phone.state",
+      "model": "Redmi",
+      "battery": 55,
+      "charging": true,
+      "ringer": "normal",
+      "network": "wifi",
+      "volume": 7,
+      "screenOn": true
+    },
+    "auto.list": {
+      "t": "auto.list"
+    },
+    "auto.catalog": {
+      "t": "auto.catalog",
+      "items": [
+        {
+          "id": "a1",
+          "name": "Focus Chrome",
+          "desc": "d",
+          "icon": "bolt",
+          "color": "#3366ff",
+          "enabled": true,
+          "approved": true,
+          "confirm": true,
+          "steps": 5,
+          "risk": "shell",
+          "updatedAt": "1970-01-01T00:00:00\u002B00:00"
+        }
+      ],
+      "stepTypes": [
+        "shell",
+        "open",
+        "window",
+        "process",
+        "key",
+        "type",
+        "mouse",
+        "media",
+        "volume",
+        "power",
+        "clip.get",
+        "clip.set",
+        "notify",
+        "file",
+        "http",
+        "delay",
+        "set",
+        "if",
+        "while",
+        "repeat",
+        "foreach",
+        "break",
+        "continue",
+        "return",
+        "log",
+        "screenshot",
+        "describe",
+        "phone.notify",
+        "phone.ring",
+        "phone.clip",
+        "call"
+      ],
+      "shellEnabled": true,
+      "trustMode": "trusted",
+      "deviceTrusted": true,
+      "authoringAllowed": true,
+      "allowlist": [
+        "notepad.exe"
+      ],
+      "functions": [
+        "contains",
+        "len"
+      ],
+      "variables": [
+        "cpu",
+        "battery"
+      ]
+    },
+    "auto.get": {
+      "t": "auto.get",
+      "id": "a1"
+    },
+    "auto.def": {
+      "t": "auto.def",
+      "automation": {
+        "id": "a1",
+        "name": "Focus Chrome",
+        "desc": "Bring Chrome forward and say hello",
+        "icon": "bolt",
+        "color": "#3366ff",
+        "enabled": true,
+        "steps": [
+          {
+            "id": "s1",
+            "type": "window",
+            "note": "bring it forward",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "action": "focus",
+            "target": "Chrome",
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s2",
+            "type": "if",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "cond": "battery \u003C 20",
+            "then": [
+              {
+                "id": "s3",
+                "type": "notify",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "text": "low battery",
+                "mods": [],
+                "number": 0,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "else": [
+              {
+                "id": "s4",
+                "type": "delay",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "mods": [],
+                "number": 250,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s5",
+            "type": "foreach",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [
+              {
+                "id": "s6",
+                "type": "log",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "text": "{{item}}",
+                "mods": [],
+                "number": 0,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "count": 0,
+            "items": "split(list, \u0022,\u0022)",
+            "var": "item"
+          },
+          {
+            "id": "s7",
+            "type": "shell",
+            "enabled": true,
+            "onErrorContinue": true,
+            "shell": "powershell",
+            "command": "Write-Output {{who}}",
+            "args": [
+              "-NoProfile"
+            ],
+            "cwd": "C:/",
+            "timeoutMs": 5000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s8",
+            "type": "http",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "url": "https://example.invalid",
+            "method": "POST",
+            "headers": {
+              "X-A": "b"
+            },
+            "body": "{}",
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          }
+        ],
+        "vars": {
+          "who": "world"
+        },
+        "confirm": true,
+        "requireUnlocked": true,
+        "createdBy": "phone-1",
+        "createdAt": "1970-01-01T00:00:00\u002B00:00",
+        "updatedAt": "1970-01-01T00:00:00\u002B00:00",
+        "approved": true,
+        "bodyHash": "hash1",
+        "risk": "shell",
+        "shortcut": "focus-chrome"
+      }
+    },
+    "auto.save": {
+      "t": "auto.save",
+      "automation": {
+        "id": "a1",
+        "name": "Focus Chrome",
+        "desc": "Bring Chrome forward and say hello",
+        "icon": "bolt",
+        "color": "#3366ff",
+        "enabled": true,
+        "steps": [
+          {
+            "id": "s1",
+            "type": "window",
+            "note": "bring it forward",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "action": "focus",
+            "target": "Chrome",
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s2",
+            "type": "if",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "cond": "battery \u003C 20",
+            "then": [
+              {
+                "id": "s3",
+                "type": "notify",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "text": "low battery",
+                "mods": [],
+                "number": 0,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "else": [
+              {
+                "id": "s4",
+                "type": "delay",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "mods": [],
+                "number": 250,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s5",
+            "type": "foreach",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [
+              {
+                "id": "s6",
+                "type": "log",
+                "enabled": true,
+                "onErrorContinue": false,
+                "args": [],
+                "timeoutMs": 30000,
+                "elevated": false,
+                "hidden": true,
+                "capture": true,
+                "text": "{{item}}",
+                "mods": [],
+                "number": 0,
+                "headers": {},
+                "then": [],
+                "else": [],
+                "do": [],
+                "count": 0
+              }
+            ],
+            "count": 0,
+            "items": "split(list, \u0022,\u0022)",
+            "var": "item"
+          },
+          {
+            "id": "s7",
+            "type": "shell",
+            "enabled": true,
+            "onErrorContinue": true,
+            "shell": "powershell",
+            "command": "Write-Output {{who}}",
+            "args": [
+              "-NoProfile"
+            ],
+            "cwd": "C:/",
+            "timeoutMs": 5000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "headers": {},
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          },
+          {
+            "id": "s8",
+            "type": "http",
+            "enabled": true,
+            "onErrorContinue": false,
+            "args": [],
+            "timeoutMs": 30000,
+            "elevated": false,
+            "hidden": true,
+            "capture": true,
+            "mods": [],
+            "number": 0,
+            "url": "https://example.invalid",
+            "method": "POST",
+            "headers": {
+              "X-A": "b"
+            },
+            "body": "{}",
+            "then": [],
+            "else": [],
+            "do": [],
+            "count": 0
+          }
+        ],
+        "vars": {
+          "who": "world"
+        },
+        "confirm": true,
+        "requireUnlocked": true,
+        "createdBy": "phone-1",
+        "createdAt": "1970-01-01T00:00:00\u002B00:00",
+        "updatedAt": "1970-01-01T00:00:00\u002B00:00",
+        "approved": true,
+        "bodyHash": "hash1",
+        "risk": "shell",
+        "shortcut": "focus-chrome"
+      }
+    },
+    "auto.saved": {
+      "t": "auto.saved",
+      "id": "a1",
+      "state": "pending",
+      "reason": "needs approval",
+      "summary": {
+        "id": "a1",
+        "name": "Focus Chrome",
+        "desc": "d",
+        "icon": "bolt",
+        "color": "#3366ff",
+        "enabled": true,
+        "approved": true,
+        "confirm": true,
+        "steps": 5,
+        "risk": "shell",
+        "updatedAt": "1970-01-01T00:00:00\u002B00:00"
+      }
+    },
+    "auto.delete": {
+      "t": "auto.delete",
+      "id": "a1"
+    },
+    "auto.run": {
+      "t": "auto.run",
+      "id": "a1",
+      "args": {
+        "who": "world"
+      },
+      "dryRun": true
+    },
+    "auto.event": {
+      "t": "auto.event",
+      "runId": "r1",
+      "id": "a1",
+      "phase": "step",
+      "stepIndex": 2,
+      "stepId": "s2",
+      "stepType": "shell",
+      "level": "warn",
+      "message": "slow",
+      "at": 1700000000000
+    },
+    "auto.result": {
+      "t": "auto.result",
+      "runId": "r1",
+      "id": "a1",
+      "ok": true,
+      "output": "done",
+      "steps": 4,
+      "durationMs": 1234,
+      "vars": {
+        "x": "1"
+      }
+    },
+    "auto.cancel": {
+      "t": "auto.cancel",
+      "runId": "r1"
+    },
+    "auto.log": {
+      "t": "auto.log",
+      "items": [
+        {
+          "at": "1970-01-01T00:00:00\u002B00:00",
+          "id": "a1",
+          "name": "Focus",
+          "device": "phone",
+          "ok": true,
+          "durationMs": 12,
+          "detail": "ok"
+        }
+      ]
+    }
   }
 }

@@ -36,19 +36,137 @@
             </ScrollViewer>
         </TabItem>
 
+        <TabItem x:Name="TabFeatures" Header="Features">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock x:Name="LblClipboardHead" Style="{StaticResource Heading}" />
+                    <CheckBox x:Name="ChkClipToPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkClipFromPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkClipImages"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+
+                    <TextBlock x:Name="LblFilesHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkFiles"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkFilesAuto"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkShellMenu"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock x:Name="LblSaveTo" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBox x:Name="TxtFolder" Width="330" Background="#FF2F2F36" Foreground="White"
+                                 BorderThickness="0" Padding="6,4" LostFocus="OnFeatureChanged" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="LblScreenHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkScreenShare"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkScreenAudio"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkViewPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkInput"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <TextBlock x:Name="LblCarrierHint" Style="{StaticResource Dim}" Margin="24,0,0,0" TextWrapping="Wrap" />
+
+                    <TextBlock x:Name="LblAudioHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkAudioToPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkAudioFromPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkMicToPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkMicFromPhone"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock x:Name="LblRenderDevice" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ComboBox x:Name="CmbRenderDevice" Width="280" SelectionChanged="OnAudioDeviceChanged" />
+                    </StackPanel>
+                    <TextBlock x:Name="LblVirtualCableHint" Style="{StaticResource Dim}" Margin="24,2,0,0" TextWrapping="Wrap" />
+
+                    <TextBlock x:Name="LblNotifHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkNotifications"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkNotifToasts"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkNotifReply"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+
+                    <TextBlock x:Name="LblPresenceHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkLockOnAway"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem x:Name="TabAutomations" Header="Automations">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <CheckBox x:Name="ChkAutomations"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkAutoAuthoring"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+
+                    <Border Background="#FF3A2A12" CornerRadius="6" Padding="12" Margin="0,12,0,6">
+                        <StackPanel>
+                            <CheckBox x:Name="ChkShell"
+                                      Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                            <TextBlock x:Name="LblShellHint" Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock x:Name="LblTrustMode" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <ComboBox x:Name="CmbTrustMode" Width="260" SelectionChanged="OnTrustModeChanged">
+                            <ComboBoxItem x:Name="ItemStrict" />
+                            <ComboBoxItem x:Name="ItemTrusted" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <TextBlock x:Name="LblAllowlist" Margin="0,12,0,4" />
+                    <TextBox x:Name="TxtAllowlist" Height="90" AcceptsReturn="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" Background="#FF2F2F36" Foreground="White"
+                             BorderThickness="0" Padding="6,4" FontFamily="Consolas" LostFocus="OnFeatureChanged" />
+
+                    <CheckBox x:Name="ChkAllowElevated"
+                              Margin="0,10,0,0" Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkAllowNetwork"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                    <CheckBox x:Name="ChkAllowFileWrite"
+                              Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+
+                    <Border Background="#FF4A1620" CornerRadius="6" Padding="12" Margin="0,16,0,0">
+                        <StackPanel>
+                            <CheckBox x:Name="ChkPanic"
+                                      Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
+                            <TextBlock x:Name="LblPanicHint" Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="LblRunsHead" Style="{StaticResource Heading}" Margin="0,20,0,0" />
+                    <Border Background="{StaticResource Card}" CornerRadius="8" Padding="12">
+                        <TextBlock x:Name="LblAuditLog" FontFamily="Consolas" FontSize="12"
+                                   Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
         <TabItem x:Name="TabSettings" Header="Settings">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
-                    <CheckBox x:Name="ChkStartup" Content="Start automatically when I sign in"
+                    <CheckBox x:Name="ChkStartup"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkBluetooth" Content="Accept Bluetooth connections"
+                    <CheckBox x:Name="ChkBluetooth"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkLan" Content="Accept Wi-Fi / LAN connections"
+                    <CheckBox x:Name="ChkLan"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkPreferBt" Content="Prefer Bluetooth when both are available"
+                    <CheckBox x:Name="ChkPreferBt"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
 
-                    <CheckBox x:Name="ChkRemotePairing" Content="Allow pairing from outside the local network"
+                    <CheckBox x:Name="ChkRemotePairing"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" Margin="0,8,0,2" />
                     <TextBlock x:Name="LblRemoteHint" Style="{StaticResource Dim}" Margin="24,0,0,14" />
 

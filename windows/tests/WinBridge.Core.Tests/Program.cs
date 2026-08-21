@@ -3,6 +3,7 @@
 // bringing up the Kotlin client.
 
 using System.Net;
+using System.Text;
 using System.Net.Sockets;
 using WinBridge.Core.Protocol;
 using WinBridge.Core.Tests;
@@ -92,7 +93,8 @@ await Check("binary blobs survive the channel", async () =>
     var got = await c.ReceiveAsync(Cancel());
 
     Assert(got.Inner == InnerType.Blob, "not a blob");
-    Assert(got.Body.AsSpan().SequenceEqual(art), "blob bytes differ");
+    Assert(got.BlobId == "art:deadbeef", "blob id lost");
+    Assert(got.Body.Span.SequenceEqual(art), "blob bytes differ");
 });
 
 await Check("a wrong pairing key is rejected, not silently accepted", async () =>
@@ -189,6 +191,141 @@ await Check("oversized frames are refused before allocation", async () =>
 });
 
 Console.WriteLine();
+await Check("media packets and file chunks survive the channel", async () =>
+{
+    byte[] psk = CryptoBox.RandomBytes(32);
+    var (server, client) = await LoopbackPair();
+
+    var st = ProtocolSession.AcceptAsync(server, new LocalIdentity("w", "w", "windows"), h => psk, Cancel());
+    var ct = ProtocolSession.ConnectAsync(client, new LocalIdentity("a", "a", "android"), psk, Cancel());
+    using var s = await st;
+    using var c = await ct;
+
+    byte[] tiles = CryptoBox.RandomBytes(9000);
+    s.TrySendMedia(new MediaPacket(
+        MediaKind.Video, StreamIds.PcScreen, 42, 1234,
+        MediaFlags.Keyframe | MediaFlags.EndOfFrame, tiles));
+
+    var got = await c.ReceiveAsync(Cancel());
+    Assert(got.Inner == InnerType.Media, "not a media frame");
+
+    var packet = got.AsMedia();
+    Assert(packet.Kind == MediaKind.Video, "wrong media kind");
+    Assert(packet.Stream == StreamIds.PcScreen, "wrong stream id");
+    Assert(packet.Seq == 42, "sequence lost");
+    Assert(packet.TimestampMs == 1234, "timestamp lost");
+    Assert(packet.Flags == (MediaFlags.Keyframe | MediaFlags.EndOfFrame), "flags lost");
+    Assert(packet.Payload.Span.SequenceEqual(tiles), "media payload differs");
+
+    byte[] chunk = CryptoBox.RandomBytes(64 * 1024);
+    await s.SendXferAsync(new XferChunk(7, 3, XferFlags.Last, chunk), Cancel());
+
+    var gotChunk = await c.ReceiveAsync(Cancel());
+    Assert(gotChunk.Inner == InnerType.Xfer, "not an xfer chunk");
+
+    var parsed = gotChunk.AsXfer();
+    Assert(parsed.TransferId == 7 && parsed.Seq == 3, "xfer header lost");
+    Assert(parsed.Flags == XferFlags.Last, "xfer flags lost");
+    Assert(parsed.Data.Span.SequenceEqual(chunk), "xfer payload differs");
+});
+
+await Check("control frames overtake queued bulk traffic", async () =>
+{
+    byte[] psk = CryptoBox.RandomBytes(32);
+    var (server, client) = await LoopbackPair();
+
+    var st = ProtocolSession.AcceptAsync(server, new LocalIdentity("w", "w", "windows"), h => psk, Cancel());
+    var ct = ProtocolSession.ConnectAsync(client, new LocalIdentity("a", "a", "android"), psk, Cancel());
+    using var s = await st;
+    using var c = await ct;
+
+    // Fill the bulk lane, then post one control frame. The writer must let the
+    // control frame past the backlog -- this is the whole reason the lanes exist.
+    const int Chunks = 64;
+    byte[] payload = CryptoBox.RandomBytes(48 * 1024);
+    var bulk = new List<Task>();
+    for (int i = 0; i < Chunks; i++)
+        bulk.Add(s.SendXferAsync(new XferChunk((uint)1, (uint)i, XferFlags.None, payload), Cancel()));
+
+    // Let the writer run until the socket stops accepting bytes, so what is left
+    // is a queue we control rather than a race against the kernel.
+    await Task.Delay(200);
+
+    // Not awaited: the writer is already stalled on a socket buffer that only
+    // this thread will drain, so awaiting here would deadlock the test rather
+    // than the protocol.
+    var pong = s.SendJsonAsync(new PongMessage { Echo = 99 }, Cancel());
+
+    int bulkBefore = 0;
+    for (int i = 0; i < Chunks + 1; i++)
+    {
+        var got = await c.ReceiveAsync(Cancel());
+        if (got.Inner == InnerType.Xfer) { bulkBefore++; continue; }
+        Assert(got.JsonType == MessageTypes.Pong, $"unexpected frame {got.Inner}/{got.JsonType}");
+        break;
+    }
+
+    // Whatever the kernel already accepted cannot be reordered, so the bound is
+    // the socket send buffer -- not the 64-chunk backlog. Without lanes this
+    // number is Chunks; with them it is a handful.
+    Assert(bulkBefore <= 12, $"control frame waited behind {bulkBefore} bulk chunks");
+
+    // Drain the rest: the writer cannot finish while the socket buffer is full,
+    // and an undrained backlog would hang the WhenAll below.
+    while (bulkBefore < Chunks)
+    {
+        var rest = await c.ReceiveAsync(Cancel());
+        if (rest.Inner == InnerType.Xfer) bulkBefore++;
+    }
+    await Task.WhenAll(bulk);
+    await pong;
+});
+
+await Check("media packets are dropped rather than queued without bound", () =>
+{
+    byte[] psk = CryptoBox.RandomBytes(32);
+    var pair = LoopbackPair().GetAwaiter().GetResult();
+
+    var st = ProtocolSession.AcceptAsync(pair.Server, new LocalIdentity("w", "w", "windows"), h => psk, Cancel());
+    var ct = ProtocolSession.ConnectAsync(pair.Client, new LocalIdentity("a", "a", "android"), psk, Cancel());
+    using var s = st.GetAwaiter().GetResult();
+    using var c = ct.GetAwaiter().GetResult();
+
+    // Nobody is reading, so once the socket buffer fills the writer stalls and
+    // the queue backs up. A sender that blocked here would stall the capture
+    // loop; a sender that queued without bound would show the user stale frames.
+    byte[] big = CryptoBox.RandomBytes(256 * 1024);
+    int accepted = 0;
+    for (int i = 0; i < 5000; i++)
+    {
+        if (s.TrySendMedia(new MediaPacket(MediaKind.Video, StreamIds.PcScreen, (uint)i, 0, MediaFlags.None, big)))
+            accepted++;
+    }
+
+    Assert(accepted < 5000, "no media packet was ever dropped");
+    Assert(s.MediaDropped > 0, "drops were not counted");
+    return Task.CompletedTask;
+});
+
+Console.WriteLine();
+await Check("the clipboard fingerprint matches the pinned cross-language vector", () =>
+{
+    // The identical assertion runs in the Kotlin vector tests. Either side
+    // changing encoding fails here rather than shipping as an endless clipboard
+    // ping-pong between a PC and a phone that no longer recognise their own text.
+    Assert(
+        ClipboardFingerprint.Of("WinBridge clipboard fingerprint vector — panoyu paylaş 42")
+            == "cd00c6119b8e5ea05aeacacacb769e12",
+        "the clipboard fingerprint changed encoding");
+
+    Assert(ClipboardFingerprint.Of("").Length == 32, "a fingerprint is not 32 hex characters");
+    Assert(
+        ClipboardFingerprint.Of("winbridge") == ClipboardFingerprint.Of(Encoding.UTF8.GetBytes("winbridge")),
+        "the string and byte overloads disagree");
+
+    return Task.CompletedTask;
+});
+
 Console.WriteLine(failures == 0 ? "ALL CHECKS PASSED" : $"{failures} CHECK(S) FAILED");
 return failures;
 

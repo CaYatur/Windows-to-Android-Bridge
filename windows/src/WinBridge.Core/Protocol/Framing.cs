@@ -14,6 +14,10 @@ public enum InnerType : byte
 {
     Json = 0x01,
     Blob = 0x02,
+    /// <summary>Real-time media: screen tiles and audio packets. Droppable.</summary>
+    Media = 0x03,
+    /// <summary>Bulk file transfer chunks. Never dropped, always flow-controlled.</summary>
+    Xfer = 0x04,
 }
 
 /// <summary>

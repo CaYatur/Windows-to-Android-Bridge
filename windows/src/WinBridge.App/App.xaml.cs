@@ -4,6 +4,8 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using Microsoft.Win32;
+using WinBridge.App.Features;
+using WinBridge.App.Features.Automation;
 using WinBridge.App.Localization;
 using WinBridge.App.Server;
 using WinBridge.App.Storage;
@@ -22,6 +24,7 @@ public partial class App : System.Windows.Application
     private Mutex? _singleInstance;
     private Forms.NotifyIcon? _tray;
     private MainWindow? _window;
+    private CancellationTokenSource? _shellWatch;
 
     public static BridgeStore Store { get; private set; } = null!;
     public static BridgeServer Server { get; private set; } = null!;
@@ -31,11 +34,38 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Before the instance check, so it can be run while the tray app is
+        // already listening on the port.
+        if (e.Args.Contains("--selftest-capture"))
+        {
+            int code = Features.CaptureSelfTest.Run(
+                ArgumentsAfter(e.Args, "--selftest-capture").FirstOrDefault()
+                    ?? "capture-selftest.png");
+            Shutdown(code);
+            return;
+        }
+
+        if (e.Args.Contains("--selftest-automation"))
+        {
+            int code = Features.Automation.AutomationSelfTest.Run(e.Args.Contains("--keep"));
+            Shutdown(code);
+            return;
+        }
+
+        // Explorer starts one process per selected item, so the paths are
+        // spooled before the instance check: whichever copy wins the mutex picks
+        // the whole batch up, and the rest can leave immediately.
+        var sendPaths = ArgumentsAfter(e.Args, "--send");
+        if (sendPaths.Count > 0) ShellIntegration.Spool(sendPaths);
+
         // A second copy would fight over the listening port and the RFCOMM
         // service record, so hand focus to the running one and leave.
         _singleInstance = new Mutex(true, @"Local\WinBridge.SingleInstance", out bool isFirst);
         if (!isFirst)
         {
+            // Hand the request to the copy that owns the port instead of dying
+            // silently, which is what --pair did before.
+            if (e.Args.Contains("--pair")) ShellIntegration.RequestPairing();
             Shutdown();
             return;
         }
@@ -64,6 +94,7 @@ public partial class App : System.Windows.Application
         Server.SessionsChanged += () => Dispatcher.Invoke(UpdateTrayTooltip);
 
         BuildTray();
+        WireFeatures();
 
         try
         {
@@ -83,6 +114,9 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // Launched only to send something: no window, just the transfer.
+        if (sendPaths.Count > 0 && Store.Settings.FirstRunDone) return;
+
         // The one time we surface ourselves uninvited is right after install,
         // so the user knows where the app went.
         if (!Store.Settings.FirstRunDone)
@@ -90,6 +124,103 @@ public partial class App : System.Windows.Application
             Store.Update(s => s with { FirstRunDone = true });
             ShowMainWindow();
         }
+    }
+
+    /// <summary>
+    /// Connects the feature services to the things only the application owns:
+    /// the tray icon, a dialog, and the Explorer hand-off.
+    ///
+    /// Until this runs, <c>Approve</c> is null and every automation that can
+    /// execute anything is refused — which is the right default, but not a
+    /// useful product.
+    /// </summary>
+    private void WireFeatures()
+    {
+        Server.Notifications.ShowToast = (title, text, level) => Dispatcher.BeginInvoke(() =>
+        {
+            if (_tray is null) return;
+            _tray.BalloonTipTitle = title.Length > 60 ? title[..60] : title;
+            _tray.BalloonTipText = text ?? "";
+            _tray.BalloonTipIcon = level switch
+            {
+                "error" => Forms.ToolTipIcon.Error,
+                "warn" => Forms.ToolTipIcon.Warning,
+                _ => Forms.ToolTipIcon.Info,
+            };
+            _tray.ShowBalloonTip(5000);
+        });
+
+        Server.Automations.Approve = ApprovalWindow.AskAsync;
+
+        Server.Files.AskToAccept = async (offer, folder) =>
+        {
+            string size = offer.Size >= 1024 * 1024
+                ? $"{offer.Size / 1024.0 / 1024:0.#} MB"
+                : $"{Math.Max(1, offer.Size / 1024)} KB";
+
+            bool accept = await Dispatcher.InvokeAsync(() => MessageBox.Show(
+                Strings.Format("xfer.incoming.body", offer.Name, size, folder),
+                Strings.Get("xfer.incoming.title"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes).Task;
+
+            return accept ? folder : null;
+        };
+
+        Server.Files.Completed += (saved, name, error) =>
+        {
+            if (saved is null) Server.Notifications.Toast(Strings.Get("xfer.failed"), $"{name}: {error}", "error");
+            else Server.Notifications.Toast(Strings.Get("xfer.received"), Path.GetFileName(saved));
+
+            if (saved is not null && Store.Settings.Files.OpenFolderWhenDone)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{saved}\"");
+                }
+                catch { }
+            }
+        };
+
+        ShellIntegration.Register(Store.Settings.Files.ShellMenu);
+
+        _shellWatch = new CancellationTokenSource();
+        ShellIntegration.Watch(SendToPhone, _shellWatch.Token);
+        ShellIntegration.WatchPairingRequests(
+            () => Dispatcher.BeginInvoke(ShowPairing), _shellWatch.Token);
+    }
+
+    /// <summary>Sends a batch to the phone that has been connected longest.</summary>
+    public static void SendToPhone(IReadOnlyList<string> paths)
+    {
+        var session = Server.Primary;
+        if (session is null)
+        {
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                int count = await Server.Files.SendAsync(session, paths, CancellationToken.None);
+                Server.Notifications.Toast(
+                    Strings.Format("xfer.sending", session.PeerName),
+                    count == 1 ? Path.GetFileName(paths[0]) : Strings.Format("xfer.items", count));
+            }
+            catch (Exception ex)
+            {
+                Server.Notifications.Toast(Strings.Get("xfer.failed"), ex.Message, "error");
+            }
+        });
+    }
+
+    private static List<string> ArgumentsAfter(string[] args, string flag)
+    {
+        int at = Array.IndexOf(args, flag);
+        if (at < 0) return [];
+        return [.. args.Skip(at + 1).Where(a => !a.StartsWith("--", StringComparison.Ordinal))];
     }
 
     private void OnLogLine(string line)
@@ -108,6 +239,11 @@ public partial class App : System.Windows.Application
         menu.Items.Add(Strings.Get("tray.open"), null, (_, _) => ShowMainWindow());
         menu.Items.Add(Strings.Get("tray.pair"), null, (_, _) => ShowPairing());
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(Strings.Get("tray.send"), null, (_, _) => PickAndSend());
+        menu.Items.Add(Strings.Get("tray.phonescreen"), null, (_, _) => OpenPhoneScreen());
+        menu.Items.Add(Strings.Get("tray.clipboard"), null, (_, _) => PushClipboard());
+        menu.Items.Add(Strings.Get("tray.clipboard.pull"), null, (_, _) => PullClipboard());
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Strings.Get("tray.exit"), null, (_, _) => ExitApp());
 
         _tray = new Forms.NotifyIcon
@@ -118,6 +254,75 @@ public partial class App : System.Windows.Application
             Text = Strings.Get("tray.tooltip.idle"),
         };
         _tray.DoubleClick += (_, _) => ShowMainWindow();
+    }
+
+    private void PickAndSend()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Strings.Get("tray.send"),
+            Multiselect = true,
+            CheckFileExists = true,
+        };
+        if (dialog.ShowDialog() == true) SendToPhone(dialog.FileNames);
+    }
+
+    private void OpenPhoneScreen()
+    {
+        var session = Server.Primary;
+        if (session is null)
+        {
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
+            return;
+        }
+        _ = Server.PhoneMirror.OpenAsync(session, CancellationToken.None);
+    }
+
+    private void PushClipboard()
+    {
+        var session = Server.Primary;
+        if (session is null)
+        {
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            // A menu item that does nothing when pressed is indistinguishable
+            // from one that is broken, and every reason this can fail is a
+            // setting the user is able to change.
+            string? refusal = await session.SendClipboardAsync(CancellationToken.None);
+            if (refusal is not null)
+                Server.Notifications.Toast(Strings.Get("features.clipboard"), refusal, "warn");
+        });
+    }
+
+    /// <summary>
+    /// Asks the phone for whatever is on its clipboard.
+    ///
+    /// The phone cannot always push: since Android 10 only the app owning the
+    /// focused window may read the clipboard, so a copy made in another app may
+    /// never reach us on its own. Asking from this side gives the phone a reason
+    /// to bring a window forward for the few milliseconds it needs.
+    /// </summary>
+    private void PullClipboard()
+    {
+        var session = Server.Primary;
+        if (session is null)
+        {
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
+            return;
+        }
+
+        if (!Server.Store.Settings.Clipboard.FromPhone)
+        {
+            Server.Notifications.Toast(
+                Strings.Get("features.clipboard"), Strings.Get("clip.off.pc.receive"), "warn");
+            return;
+        }
+
+        _ = session.SendJsonAsync(new WinBridge.Core.Protocol.ClipboardRequest(), CancellationToken.None);
     }
 
     private void UpdateTrayTooltip()
@@ -217,6 +422,7 @@ public partial class App : System.Windows.Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        _shellWatch?.Cancel();
         if (Server is not null) await Server.DisposeAsync();
         _tray?.Dispose();
         _singleInstance?.Dispose();

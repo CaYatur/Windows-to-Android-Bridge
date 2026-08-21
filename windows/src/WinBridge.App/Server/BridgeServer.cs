@@ -1,7 +1,10 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Windows;
 using WinBridge.App.Carriers;
+using WinBridge.App.Features;
+using WinBridge.App.Features.Automation;
 using WinBridge.App.Providers;
 using WinBridge.App.Storage;
 using WinBridge.Core.Protocol;
@@ -12,12 +15,47 @@ namespace WinBridge.App.Server;
 /// Owns the carriers, the providers and the live sessions, and is the only place
 /// that decides whether an incoming connection is allowed to proceed.
 /// </summary>
-public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
+public sealed class BridgeServer : IAsyncDisposable
 {
+    private readonly BridgeStore store;
+
+    public BridgeServer(BridgeStore bridgeStore)
+    {
+        store = bridgeStore;
+        _files = new FileTransferService(store);
+        _screen = new ScreenService(store);
+        _phoneMirror = new PhoneMirrorService(store);
+        _audio = new AudioService(store);
+        _automations = new AutomationService(store, _automationStore);
+        _notifications = new NotificationHub(store);
+
+        _files.Log += m => Emit(m);
+        _screen.Log += m => Emit(m);
+        _phoneMirror.Log += m => Emit(m);
+        _audio.Log += m => Emit(m);
+        _automations.Log += m => Emit(m);
+        _automationStore.Log += m => Emit(m);
+        _notifications.Log += m => Emit(m);
+        _clipboard.Log += m => Emit(m);
+        _input.Log += m => Emit(m);
+        _systemQuery.Log += m => Emit(m);
+    }
+
     private readonly MediaProvider _media = new();
     private readonly SystemMetricsProvider _metrics = new();
     private readonly VolumeProvider _volume = new();
     private readonly PowerProvider _power = new();
+
+    private readonly ClipboardBridge _clipboard = new();
+    private readonly FileTransferService _files;
+    private readonly ScreenService _screen;
+    private readonly PhoneMirrorService _phoneMirror;
+    private readonly AudioService _audio;
+    private readonly InputInjector _input = new();
+    private readonly SystemQueryService _systemQuery = new();
+    private readonly AutomationStore _automationStore = new();
+    private readonly AutomationService _automations;
+    private readonly NotificationHub _notifications;
 
     private readonly ConcurrentDictionary<Guid, ClientSession> _sessions = new();
     private readonly List<ICarrier> _carriers = [];
@@ -25,10 +63,20 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
     private DiscoveryResponder? _discovery;
     private CancellationTokenSource? _cts;
     private string? _btMac;
+    private HostServices? _services;
 
     public PairingService Pairing { get; } = new();
     public BridgeStore Store => store;
     public PowerCaps Caps => _power.Caps;
+
+    public ClipboardBridge Clipboard => _clipboard;
+    public FileTransferService Files => _files;
+    public ScreenService Screen => _screen;
+    public PhoneMirrorService PhoneMirror => _phoneMirror;
+    public AudioService Audio => _audio;
+    public AutomationService Automations => _automations;
+    public NotificationHub Notifications => _notifications;
+    public SystemQueryService SystemQuery => _systemQuery;
 
     public IReadOnlyCollection<ClientSession> Sessions => _sessions.Values.ToArray();
 
@@ -46,6 +94,24 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
         var settings = store.Settings;
+
+        foreach (string note in store.Migrations) Emit(note);
+
+        BuildServices();
+
+        try
+        {
+            // Must be on the UI thread: the clipboard is an STA API and the
+            // listener needs a window with a message pump.
+            await OnUiThreadAsync(() =>
+            {
+                _clipboard.Start();
+                _clipboard.Watching = settings.Clipboard.ToPhone;
+                _clipboard.IncludeImages = settings.Clipboard.Images;
+                _clipboard.MaxBytes = settings.Clipboard.MaxBytes;
+            });
+        }
+        catch (Exception ex) { Emit($"clipboard listener unavailable: {ex.Message}"); }
 
         try
         {
@@ -94,6 +160,115 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
         Emit($"started with {_carriers.Count} carrier(s)");
     }
 
+    /// <summary>
+    /// Builds the feature services and the bundle a session is handed. Done in
+    /// one place so the reach of a connected phone is visible at a glance rather
+    /// than assembled across the file.
+    /// </summary>
+    private void BuildServices()
+    {
+        _services = new HostServices
+        {
+            Store = store,
+            Media = _media,
+            Metrics = _metrics,
+            Volume = _volume,
+            Power = _power,
+            Clipboard = _clipboard,
+            Files = _files,
+            Screen = _screen,
+            PhoneMirror = _phoneMirror,
+            Audio = _audio,
+            Input = _input,
+            SystemQuery = _systemQuery,
+            Automations = _automations,
+            Notifications = _notifications,
+            DescribePeer = DescribePeer,
+            OnUiThread = OnUiThreadAsync,
+            Log = Emit,
+        };
+
+        _automations.Host = _services;
+        _phoneMirror.OnUiThread = OnUiThreadAsync;
+
+        // Remote input is refused on the lock screen even when the setting is
+        // on: nobody is there to see what is being typed.
+        _input.Gate = () =>
+            !store.Settings.Input.RequireUnlocked || !SessionState.IsLocked();
+
+        _clipboard.Changed += clip => Broadcast(session => session.PushClipboardAsync(clip, CancellationToken.None));
+        _screen.GeometryChanged += (link, info) =>
+        {
+            if (link is ClientSession session)
+                _ = session.SendJsonAsync(info, CancellationToken.None);
+        };
+    }
+
+    /// <summary>Re-reads the settings that services cache, after the user changes them.</summary>
+    public void ApplySettings()
+    {
+        var settings = store.Settings;
+        _clipboard.Watching = settings.Clipboard.ToPhone;
+        _clipboard.IncludeImages = settings.Clipboard.Images;
+        _clipboard.MaxBytes = settings.Clipboard.MaxBytes;
+
+        Broadcast(async session =>
+        {
+            await session.SendFeaturesAsync(CancellationToken.None);
+            await session.ReconcileAudioAsync(CancellationToken.None);
+        });
+    }
+
+    /// <summary>Runs an action on every live session, ignoring the ones that have gone away.</summary>
+    public void Broadcast(Func<ClientSession, Task> action)
+    {
+        foreach (var session in _sessions.Values)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await action(session); }
+                catch (Exception ex) { Diagnostics.Log.Write($"broadcast to {session.PeerName} failed: {ex.Message}"); }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Locks the machine a little after the phone goes away, if asked to.
+    ///
+    /// Delayed rather than immediate, and cancelled by any reconnect: Wi-Fi drops
+    /// for a second all the time, and a bridge that locks the desktop every time
+    /// an access point re-associates would be turned off within a day.
+    /// </summary>
+    private void ConsiderLocking(string who)
+    {
+        var presence = store.Settings.Presence;
+        if (!presence.LockOnAway || _sessions.IsEmpty is false) return;
+
+        int delay = Math.Max(5, presence.LockDelaySec);
+        Emit($"{who} left; locking in {delay}s unless it comes back");
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(delay));
+            if (!_sessions.IsEmpty) { Emit("phone came back; not locking"); return; }
+            if (store.Settings.Presence.LockOnAway) _power.Execute("lock", 0, out _);
+        });
+    }
+
+    /// <summary>The first connected phone, for tray actions that need a target.</summary>
+    public ClientSession? Primary => _sessions.Values.OrderBy(s => s.ConnectedAt).FirstOrDefault();
+
+    private static Task OnUiThreadAsync(Action action)
+    {
+        var application = Application.Current;
+        if (application is null)
+        {
+            action();
+            return Task.CompletedTask;
+        }
+        return application.Dispatcher.InvokeAsync(action).Task;
+    }
+
     private void Emit(string message)
     {
         Diagnostics.Log.Write(message);
@@ -111,7 +286,7 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
             settings.TcpPort,
             _btMac);
 
-        Log?.Invoke($"pairing open for {PairingService.Window.TotalSeconds:0}s ({method})");
+        Emit($"pairing open for {PairingService.Window.TotalSeconds:0}s ({method})");
 
         // Close the window on a timer as well as on success, so an abandoned
         // pairing does not leave the machine accepting new devices.
@@ -171,37 +346,37 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
 
                 store.SavePairing(session.PeerDeviceId, session.PeerName, session.PeerPlatform, real);
                 Pairing.Close();
-                Log?.Invoke($"paired with {session.PeerName}");
+                Emit($"paired with {session.PeerName}");
             }
             else
             {
                 store.TouchDevice(session.PeerDeviceId);
             }
 
-            var client = new ClientSession(
-                session, connection.Carrier, _media, _metrics, _volume, _power, DescribePeer);
-            client.Log += m => Log?.Invoke($"[{session.PeerName}] {m}");
+            var client = new ClientSession(session, connection.Carrier, _services!);
+            client.Log += m => Emit($"[{session.PeerName}] {m}");
 
             _sessions[id] = client;
             SessionsChanged?.Invoke();
-            Log?.Invoke($"{session.PeerName} connected over {connection.Carrier}");
+            Emit($"{session.PeerName} connected over {connection.Carrier}");
 
             await client.RunAsync(ct);
         }
         catch (ProtocolException ex)
         {
-            Log?.Invoke($"refused {connection.RemoteDescription}: {ex.Message}");
+            Emit($"refused {connection.RemoteDescription}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Log?.Invoke($"{connection.RemoteDescription} dropped: {ex.Message}");
+            Emit($"{connection.RemoteDescription} dropped: {ex.Message}");
         }
         finally
         {
             if (_sessions.TryRemove(id, out var gone))
             {
-                Log?.Invoke($"{gone.PeerName} disconnected");
+                Emit($"{gone.PeerName} disconnected");
                 SessionsChanged?.Invoke();
+                ConsiderLocking(gone.PeerName);
             }
             session?.Dispose();
             connection.CloseResource();
@@ -223,7 +398,7 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
             return false;
 
         bool ok = TcpCarrier.IsPrivateAddress(endpoint.Address);
-        if (!ok) Log?.Invoke($"pairing refused from non-local address {endpoint.Address}");
+        if (!ok) Emit($"pairing refused from non-local address {endpoint.Address}");
         return ok;
     }
 
@@ -255,6 +430,11 @@ public sealed class BridgeServer(BridgeStore store) : IAsyncDisposable
         await _media.DisposeAsync();
         _metrics.Dispose();
         _volume.Dispose();
+        _screen.Dispose();
+        _phoneMirror.CloseAll();
+        _audio.Dispose();
+        _automations.CancelAll();
+        try { await OnUiThreadAsync(_clipboard.Dispose); } catch { }
         _cts?.Dispose();
     }
 }

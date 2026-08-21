@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Declares as little as it can get away with.
+
+    canRetrieveWindowContent is on because typing into a focused field and
+    reading the active window title both need it, but no event types are
+    requested: this service does not want to observe anything, it only wants to
+    dispatch gestures. Asking for event types would make it wake on every UI
+    change on the device for no benefit.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_description"
+    android:notificationTimeout="200"
+    android:settingsActivity="com.cayatur.winbridge.MainActivity" />

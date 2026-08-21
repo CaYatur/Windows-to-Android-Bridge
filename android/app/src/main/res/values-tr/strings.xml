@@ -105,4 +105,213 @@
     <string name="notification_channel_media_desc">Bilgisayarınızda çalanı kontrollerle gösterir</string>
     <string name="settings_media_notification">Kilit ekranında ve bildirimlerde göster</string>
     <string name="settings_media_notification_hint">Bilgisayarınızdaki müzik, bu telefonda çalıyormuş gibi görünür; kilit ekranından kontrol edebilirsiniz.</string>
+
+    <!-- 0.2.0 ozellikleri -->
+    <string name="share_to_pc">Bilgisayara gönder</string>
+    <string name="pc_screen">Bilgisayar ekranı</string>
+    <string name="voice_command">Bilgisayara söyle</string>
+    <string name="tile_clipboard">Panoyu bilgisayara</string>
+    <string name="tile_mirror">Bilgisayar ekranı</string>
+    <string name="accessibility_label">WinBridge uzaktan kontrol</string>
+    <string name="accessibility_description">Bilgisayarınızın ekranını izlerken, bilgisayarın bu telefonda dokunmasına, kaydırmasına ve yazmasına izin verir. Hiçbir şey başka bir yere gönderilmez ve yalnızca yansıtma oturumu açıkken çalışır.</string>
+    <string name="notification_relay_label">WinBridge bildirimleri</string>
+
+    <string name="shortcut_clipboard_short">Panoyu bilgisayara</string>
+    <string name="shortcut_clipboard_long">Panoyu bilgisayarıma gönder</string>
+    <string name="shortcut_screen_short">Bilgisayar ekranı</string>
+    <string name="shortcut_screen_long">Bilgisayarımın ekranını göster</string>
+    <string name="shortcut_voice_short">Bilgisayara söyle</string>
+    <string name="shortcut_voice_long">Bilgisayarım için bir komut söyle</string>
+
+    <string name="widget_automations">WinBridge otomasyonları</string>
+    <string name="widget_automations_desc">Ana ekrandan bilgisayar otomasyonu çalıştırın</string>
+
+    <string name="channel_transfers">Dosya aktarımı</string>
+    <string name="channel_transfers_desc">Telefon ve bilgisayar arasındaki dosyaların durumu</string>
+    <string name="channel_clipboard">Pano</string>
+    <string name="channel_clipboard_desc">Bilgisayarda kopyalanan, buraya yapıştırmaya hazır metin</string>
+    <string name="channel_capture">Ekran paylaşımı</string>
+    <string name="channel_capture_desc">Bu telefon ekranını veya sesini paylaşırken görünür</string>
+    <string name="channel_alerts">Uyarılar</string>
+    <string name="channel_alerts_desc">Zil, otomasyon sonuçları ve diğer tek seferlik mesajlar</string>
+
+    <string name="clipboard_from_pc">%1$s üzerinde kopyalandı</string>
+    <string name="clipboard_tap_to_copy">Buraya kopyalamak için dokunun</string>
+    <string name="clipboard_sent">Pano bilgisayara gönderildi</string>
+    <string name="clipboard_empty">Gönderilecek bir şey yok — pano boş</string>
+    <string name="clipboard_blocked">Android, uygulamanın arka planda panoyu okumasına izin vermedi</string>
+
+    <string name="transfer_incoming">%1$s alınıyor</string>
+    <string name="transfer_outgoing">%1$s gönderiliyor</string>
+    <string name="transfer_done">%1$s kaydedildi</string>
+    <string name="transfer_failed">%1$s başarısız: %2$s</string>
+    <string name="transfer_no_pc">Bağlı bilgisayar yok</string>
+    <string name="transfer_sending_count">%2$s cihazına %1$d öğe gönderiliyor</string>
+
+    <string name="capture_running">Ekran %1$s ile paylaşılıyor</string>
+    <string name="capture_stop">Durdur</string>
+    <string name="capture_denied">Ekran paylaşımına izin verilmedi</string>
+
+    <string name="pc_screen_connecting">Bilgisayardan ekran isteniyor…</string>
+    <string name="pc_screen_off">Bilgisayarınız ekranını paylaşmıyor.</string>
+    <string name="pc_screen_touch">Dokunmatik kontrol</string>
+    <string name="pc_screen_audio">Bilgisayar sesi</string>
+    <string name="pc_screen_keyboard">Klavye</string>
+    <string name="pc_screen_quality">Kalite</string>
+
+    <string name="automations_title">Otomasyonlar</string>
+    <string name="automations_empty">Henüz otomasyon yok. Bir tane oluşturun, bilgisayarınızda çalışsın.</string>
+    <string name="automations_new">Yeni otomasyon</string>
+    <string name="automations_run">Çalıştır</string>
+    <string name="automations_pending">Bilgisayarda onay bekliyor</string>
+    <string name="automations_shell_off">Kabuk adımları bilgisayarda kapalı</string>
+    <string name="automations_risk_safe">Güvenli</string>
+    <string name="automations_risk_input">Bilgisayarı kontrol eder</string>
+    <string name="automations_risk_shell">Komut çalıştırır</string>
+    <string name="automations_risk_dangerous">Yıkıcı komutlar</string>
+
+    <string name="voice_listening">Dinleniyor…</string>
+    <string name="voice_no_match">Anlayamadım</string>
+    <string name="voice_sent">Gönderildi: %1$s</string>
+    <string name="voice_unavailable">Bu telefonda kullanılabilir bir konuşma tanıyıcı yok</string>
+
+    <string name="settings_features">Özellikler</string>
+    <string name="settings_clipboard_to_pc">Panomu bilgisayara gönder</string>
+    <string name="settings_clipboard_from_pc">Bilgisayar panosunu buraya uygula</string>
+    <string name="settings_clipboard_hint">İkisi de varsayılan olarak kapalı. Android, bir uygulamanın panoyu yalnızca öndeyken okumasına izin verir; bu yüzden arka planda gönderim bildirim veya Hızlı Ayarlar döşemesiyle yapılır.</string>
+    <string name="settings_files">Dosya aktarımı</string>
+    <string name="settings_screen_share">Bilgisayar bu ekranı görebilsin</string>
+    <string name="settings_screen_share_hint">Android her oturumda bir kez izin ister; bu adım atlanamaz.</string>
+    <string name="settings_remote_input">Bilgisayar bu telefonu kontrol edebilsin</string>
+    <string name="settings_remote_input_hint">Erişilebilirlik hizmeti gerekir. Android ayarlarından açın; root olmadan kendi uygulamamız dışında dokunmanın ve yazmanın tek yolu budur.</string>
+    <string name="settings_audio">Ses</string>
+    <string name="settings_audio_from_pc">Bilgisayar sesini burada çal</string>
+    <string name="settings_mic_to_pc">Bu mikrofonu bilgisayarda kullan</string>
+    <string name="settings_mic_from_pc">Bilgisayar mikrofonunu burada çal</string>
+    <string name="settings_notifications">Bildirimlerimi bilgisayara yansıt</string>
+    <string name="settings_notifications_hint">Varsayılan olarak kapalı: telefondaki her bildirimi okur. Android ayarlarından bildirim erişimi gerekir.</string>
+    <string name="settings_assistant">Asistan ve kısayollar</string>
+    <string name="settings_shortcuts">Otomasyonları kısayol olarak yayınla</string>
+    <string name="settings_shortcuts_hint">Her otomasyon bir uygulama kısayolu olur; asistan rutinine veya ana ekrana ekleyebilirsiniz.</string>
+    <string name="settings_triggers">Diğer uygulamalar otomasyon tetikleyebilsin</string>
+    <string name="settings_trigger_token">Tetikleme anahtarı</string>
+    <string name="settings_trigger_regenerate">Yeni anahtar üret</string>
+    <string name="settings_speak">Yanıtı sesli oku</string>
+    <string name="settings_open_android">Android ayarlarını aç</string>
+    <string name="settings_granted">İzin verildi</string>
+    <string name="settings_not_granted">Henüz izin verilmedi</string>
+
+    <string name="ring_title">Bilgisayarınız bu telefonu arıyor</string>
+    <string name="ring_stop">Durdur</string>
+
+    <!-- 0.2.0 arayuz metinleri -->
+    <string name="more_actions">Bir şey yap</string>
+    <string name="more_whats_on_screen">Ekranda ne var</string>
+    <string name="more_pc_allows">Bilgisayarınız şunlara izin veriyor</string>
+    <string name="more_carrier_note">Bu bağlantıda yansıtma Wi-Fi gerektirir.</string>
+    <string name="more_on">açık</string>
+    <string name="more_off">kapalı</string>
+
+    <string name="auto_editor_title">Otomasyon</string>
+    <string name="auto_name">Ad</string>
+    <string name="auto_description">Açıklama</string>
+    <string name="auto_confirm_each">Her çalıştırmadan önce bilgisayarda sor</string>
+    <string name="auto_require_unlocked">Yalnızca bilgisayar kilitli değilken</string>
+    <string name="auto_steps">Adımlar</string>
+    <string name="auto_add_step">Adım ekle</string>
+    <string name="auto_save">Bilgisayara kaydet</string>
+    <string name="auto_cancel">Vazgeç</string>
+    <string name="auto_then">Sonra</string>
+    <string name="auto_else">Değilse</string>
+    <string name="auto_do">Yap</string>
+    <string name="auto_move_up">Yukarı taşı</string>
+    <string name="auto_move_down">Aşağı taşı</string>
+    <string name="auto_remove">Kaldır</string>
+    <string name="auto_editor_note">Kaydedilen otomasyonlar bilgisayarda durur. Komut çalıştıran veya pencere kontrol eden her şey, çalışmadan önce orada onaylanmalıdır.</string>
+    <string name="auto_hello">Telefonumdan merhaba</string>
+
+    <string name="field_command">Komut</string>
+    <string name="field_shell">Kabuk (cmd, powershell, exec)</string>
+    <string name="field_store_output">Çıktıyı değişkende sakla</string>
+    <string name="field_continue_on_error">Başarısız olursa devam et</string>
+    <string name="field_url_or_path">URL veya yol</string>
+    <string name="field_window_or_process">Pencere veya süreç</string>
+    <string name="field_window_action">İşlem (focus, close, minimize, maximize)</string>
+    <string name="field_program">Program</string>
+    <string name="field_process_action">İşlem (start, kill)</string>
+    <string name="field_key">Tuş</string>
+    <string name="field_mods">Değiştiriciler, virgülle</string>
+    <string name="field_text">Metin</string>
+    <string name="field_volume_action">İşlem (set, mute, unmute, up, down)</string>
+    <string name="field_level">Seviye</string>
+    <string name="field_media_action">İşlem (play, pause, next, prev)</string>
+    <string name="field_power_action">İşlem (lock, sleep, shutdown, restart)</string>
+    <string name="field_file_action">İşlem (read, write, copy, move, delete, exists)</string>
+    <string name="field_path">Yol</string>
+    <string name="field_destination">Hedef</string>
+    <string name="field_text_for_write">Metin (yazma için)</string>
+    <string name="field_url">URL</string>
+    <string name="field_method">Yöntem</string>
+    <string name="field_body">Gövde</string>
+    <string name="field_milliseconds">Milisaniye</string>
+    <string name="field_variable">Değişken</string>
+    <string name="field_expression">İfade</string>
+    <string name="field_condition">Koşul</string>
+    <string name="field_times">Kaç kez</string>
+    <string name="field_items_expression">Liste ifadesi</string>
+    <string name="field_variable_name">Değişken adı</string>
+    <string name="field_seconds">Saniye</string>
+    <string name="field_monitor">Ekran (boşsa birincil)</string>
+    <string name="field_store_in">Değişkende sakla</string>
+    <string name="field_note">Not</string>
+
+    <string name="step_shell">Komut çalıştır</string>
+    <string name="step_open">Aç</string>
+    <string name="step_window">Pencere</string>
+    <string name="step_process">Süreç</string>
+    <string name="step_key">Tuşa bas</string>
+    <string name="step_type">Metin yaz</string>
+    <string name="step_mouse">Fare</string>
+    <string name="step_media">Medya</string>
+    <string name="step_volume">Ses</string>
+    <string name="step_power">Güç</string>
+    <string name="step_clip_get">Bilgisayar panosunu oku</string>
+    <string name="step_clip_set">Bilgisayar panosunu ayarla</string>
+    <string name="step_notify">Bilgisayarda mesaj göster</string>
+    <string name="step_file">Dosya</string>
+    <string name="step_http">HTTP isteği</string>
+    <string name="step_delay">Bekle</string>
+    <string name="step_set">Değişken ata</string>
+    <string name="step_if">Eğer</string>
+    <string name="step_while">Olduğu sürece</string>
+    <string name="step_repeat">Tekrarla</string>
+    <string name="step_foreach">Her biri için</string>
+    <string name="step_break">Döngüden çık</string>
+    <string name="step_continue">Sonraki tura geç</string>
+    <string name="step_return">Durdur</string>
+    <string name="step_log">Günlüğe yaz</string>
+    <string name="step_screenshot">Ekran görüntüsü</string>
+    <string name="step_describe">Ekranı tarif et</string>
+    <string name="step_phone_notify">Bu telefona bildirim</string>
+    <string name="step_phone_ring">Bu telefonu çaldır</string>
+    <string name="step_phone_clip">Bu telefona kopyala</string>
+    <string name="step_call">Başka otomasyon çalıştır</string>
+
+    <string name="pc_screen_trackpad">Touchpad</string>
+    <string name="settings_mic_permission">Mikrofon izni gerekiyor. İzin vermek için anahtara tekrar dokunun.</string>
+    <string name="clip_diag_idle">Bu telefonda henüz kopyalama görülmedi.</string>
+    <string name="clip_diag_working">%2$d kopyanın %1$d tanesi otomatik gönderildi.</string>
+    <string name="clip_diag_refused">Kopyalamalar görülüyor ama Android okumayı hâlâ reddediyor. Göndermek için Hızlı Ayarlar döşemesini veya paylaşım menüsünü kullanın.</string>
+    <string name="clip_diag_needs_overlay">Kopyalamalar görülüyor ama Android panoyu yalnızca odaktaki pencerenin sahibi uygulamaya okutur. Otomatik gönderim için "diğer uygulamaların üzerinde göster" iznini verin.</string>
+    <string name="clipboard_via_overlay">Otomatik</string>
+    <string name="clipboard_via_relay">Aktarıcı ile</string>
+    <string name="settings_clipboard_grant_overlay">Otomatik göndermeye izin ver</string>
+    <string name="field_mouse_action">Fare eylemi (move, click, down, up, wheel)</string>
+    <string name="field_x">X</string>
+    <string name="field_y">Y</string>
+    <string name="field_wheel">Tekerlek kademesi (negatif aşağı kaydırır)</string>
+    <string name="field_button">Düğme (left, right, middle)</string>
+    <string name="widget_automation_button">Otomasyon düğmesi</string>
+    <string name="widget_automation_button_desc">Seçtiğiniz bir otomasyonu tek dokunuşla PC üzerinde çalıştırır.</string>
+    <string name="widget_pick_automation">Bir otomasyon seçin</string>
 </resources>
