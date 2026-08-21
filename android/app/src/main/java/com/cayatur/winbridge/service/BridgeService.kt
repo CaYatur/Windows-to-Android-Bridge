@@ -58,6 +58,10 @@ class BridgeService : Service() {
         registerNetworkCallback()
         registerBluetoothReceiver()
 
+        // Clipboard changes are pushed as they happen where Android allows the
+        // read; the tile and the share sheet remain for where it does not.
+        com.cayatur.winbridge.feature.ClipboardWatcher.attach(this)
+
         app.client.start()
 
         app.scope.launch {
@@ -204,6 +208,7 @@ class BridgeService : Service() {
             runCatching { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback) }
         }
         bluetoothReceiver?.let { runCatching { unregisterReceiver(it) } }
+        com.cayatur.winbridge.feature.ClipboardWatcher.detach(this)
         runCatching { android.os.Handler(android.os.Looper.getMainLooper()).post { mediaProxy.stop() } }
         super.onDestroy()
     }

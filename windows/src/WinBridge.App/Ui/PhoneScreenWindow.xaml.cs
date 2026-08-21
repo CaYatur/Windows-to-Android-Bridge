@@ -26,10 +26,10 @@ public partial class PhoneScreenWindow : Window
     private int _tileWidth = 64;
     private int _tileHeight = 64;
     private int _columns;
-    private byte[] _tilePixels = [];
 
     private bool _dragging;
     private uint _lastPresented;
+    private int _framesPresented;
     private int _framesSinceReport;
     private long _bytesSinceReport;
     private DateTime _lastReport = DateTime.UtcNow;
@@ -76,63 +76,56 @@ public partial class PhoneScreenWindow : Window
         _canvas = new WriteableBitmap(
             Math.Max(1, info.Width), Math.Max(1, info.Height), 96, 96, PixelFormats.Bgra32, null);
         Surface.Source = _canvas;
-        _tilePixels = new byte[_tileWidth * _tileHeight * 4];
+        _blank = null;
     }
 
-    public void OnPacket(in MediaPacket packet)
+    /// <summary>One tile, already decoded to BGRA and ready to blit.</summary>
+    public readonly record struct DecodedTile(int X, int Y, int Width, int Height, byte[] Pixels, int Stride);
+
+    /// <summary>
+    /// Paints a frame that was decoded elsewhere.
+    ///
+    /// JPEG decoding used to happen here, on the UI thread, once per tile. At
+    /// thirty frames a second with dozens of changed tiles that is the whole
+    /// frame budget spent before anything is drawn — which looks exactly like
+    /// network lag and is not.
+    /// </summary>
+    public void Present(IReadOnlyList<DecodedTile> tiles, bool keyframe, uint timestampMs, int bytes)
     {
-        if (_canvas is null) return;
+        var target = _canvas;
+        if (target is null) return;
 
-        if (packet.Flags.HasFlag(MediaFlags.Keyframe))
+        _bytesSinceReport += bytes;
+
+        if (keyframe)
         {
-            // Only the first packet of a frame carries this. Clearing on every
-            // packet of a split frame would wipe the tiles just painted.
-            var blank = new byte[_canvas.PixelWidth * 4];
-            for (int row = 0; row < _canvas.PixelHeight; row++)
-                _canvas.WritePixels(new Int32Rect(0, row, _canvas.PixelWidth, 1), blank, _canvas.PixelWidth * 4, 0);
+            // One write, not one per row: clearing a 720-row canvas a row at a
+            // time is 720 dirty rectangles for the compositor to reconcile.
+            int stride = target.PixelWidth * 4;
+            _blank ??= new byte[stride * target.PixelHeight];
+            target.WritePixels(new Int32Rect(0, 0, target.PixelWidth, target.PixelHeight), _blank, stride, 0);
         }
 
-        _bytesSinceReport += packet.Payload.Length;
-
-        foreach (var (index, jpeg) in TileCodec.ReadTiles(packet.Payload))
+        foreach (var tile in tiles)
         {
-            try { PaintTile(index, jpeg); }
-            catch { /* a torn tile is one square, not a reason to drop the stream */ }
+            if (tile.X >= target.PixelWidth || tile.Y >= target.PixelHeight) continue;
+            int width = Math.Min(tile.Width, target.PixelWidth - tile.X);
+            int height = Math.Min(tile.Height, target.PixelHeight - tile.Y);
+            if (width <= 0 || height <= 0) continue;
+
+            target.WritePixels(new Int32Rect(tile.X, tile.Y, width, height), tile.Pixels, tile.Stride, 0);
         }
 
-        if (packet.Flags.HasFlag(MediaFlags.EndOfFrame))
-        {
-            _framesSinceReport++;
-            _lastPresented = packet.TimestampMs;
-            ReportStats();
-        }
+        _framesPresented++;
+        _lastPresented = timestampMs;
+        ReportStats();
     }
 
-    private void PaintTile(ushort index, ReadOnlyMemory<byte> jpeg)
-    {
-        if (_canvas is null || _columns == 0) return;
+    /// <summary>Where a tile index lands, given the geometry from stream.info.</summary>
+    public (int X, int Y) TileOrigin(int index) =>
+        _columns == 0 ? (0, 0) : ((index % _columns) * _tileWidth, (index / _columns) * _tileHeight);
 
-        int column = index % _columns;
-        int row = index / _columns;
-        int x = column * _tileWidth;
-        int y = row * _tileHeight;
-        if (x >= _canvas.PixelWidth || y >= _canvas.PixelHeight) return;
-
-        using var stream = new MemoryStream(jpeg.ToArray(), writable: false);
-        var frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-
-        var converted = new FormatConvertedBitmap(frame, PixelFormats.Bgra32, null, 0);
-        int width = Math.Min(converted.PixelWidth, _canvas.PixelWidth - x);
-        int height = Math.Min(converted.PixelHeight, _canvas.PixelHeight - y);
-        if (width <= 0 || height <= 0) return;
-
-        int stride = converted.PixelWidth * 4;
-        int needed = stride * converted.PixelHeight;
-        if (_tilePixels.Length < needed) _tilePixels = new byte[needed];
-
-        converted.CopyPixels(_tilePixels, stride, 0);
-        _canvas.WritePixels(new Int32Rect(x, y, width, height), _tilePixels, stride, 0);
-    }
+    private byte[]? _blank;
 
     /// <summary>
     /// Tells the sender what is actually arriving. It adapts from this rather
@@ -145,15 +138,17 @@ public partial class PhoneScreenWindow : Window
         if (elapsed.TotalMilliseconds < 1000) return;
 
         double seconds = elapsed.TotalSeconds;
+        int frames = _framesPresented - _framesSinceReport;
+        _framesSinceReport = _framesPresented;
+
         _ = _link.SendJsonAsync(new StreamStats
         {
             Stream = StreamIds.Name(StreamIds.PhoneScreen),
-            Fps = Math.Round(_framesSinceReport / seconds, 1),
+            Fps = Math.Round(frames / seconds, 1),
             Kbps = Math.Round(_bytesSinceReport * 8 / seconds / 1000, 1),
             LatencyMs = (int)Math.Max(0, _clock.ElapsedMilliseconds - _lastPresented),
         }, CancellationToken.None);
 
-        _framesSinceReport = 0;
         _bytesSinceReport = 0;
         _lastReport = DateTime.UtcNow;
     }
@@ -193,9 +188,18 @@ public partial class PhoneScreenWindow : Window
         Send(new InputTouch { Action = "down", X = x, Y = y });
     }
 
+    private DateTime _lastMoveSent = DateTime.MinValue;
+
     private void OnSurfaceMove(object sender, MouseEventArgs e)
     {
         if (!_dragging || !Interactive || !TryNormalise(e, out double x, out double y)) return;
+
+        // Roughly 60 Hz. A move per mouse event is several hundred a second,
+        // and the phone dispatches each one as a gesture segment — the queue
+        // never drains and the drag arrives as a stutter.
+        if ((DateTime.UtcNow - _lastMoveSent).TotalMilliseconds < 16) return;
+        _lastMoveSent = DateTime.UtcNow;
+
         Send(new InputTouch { Action = "move", X = x, Y = y });
     }
 

@@ -4,7 +4,10 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.graphics.Path
+import android.graphics.PointF
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -60,41 +63,140 @@ class RemoteInputService : AccessibilityService() {
 
     // ---- injection ---------------------------------------------------------
 
-    private val dragPath = Path()
-    private var dragging = false
-    private var dragStart = 0L
+    // A drag is one gesture continued segment by segment, not a series of
+    // gestures. The distinction matters twice over: a fling needs velocity,
+    // which separate taps do not have, and the accessibility pipeline refuses a
+    // new gesture while one is still running — so dispatching per move event
+    // drops most of them, which is what "not stable" looks like from outside.
+    private var activeStroke: GestureDescription.StrokeDescription? = null
+    private var lastPoint: PointF? = null
+    private var pendingPoint: PointF? = null
+    private var finishing = false
+    private var inFlight = false
+    private var downAt = 0L
+    private var moved = false
+
+    private val handler = Handler(Looper.getMainLooper())
 
     fun touch(command: InputTouch) {
         val (x, y) = toPixels(command.x, command.y)
 
         when (command.action) {
             "down" -> {
-                dragPath.reset()
-                dragPath.moveTo(x, y)
-                dragging = true
-                dragStart = System.currentTimeMillis()
+                activeStroke = null
+                pendingPoint = null
+                finishing = false
+                inFlight = false
+                moved = false
+                downAt = System.currentTimeMillis()
+                lastPoint = PointF(x, y)
             }
 
             "move" -> {
-                if (!dragging) return
-                dragPath.lineTo(x, y)
-
-                // A drag is dispatched as one continued stroke rather than a
-                // sequence of taps: a fling needs velocity, and separate taps
-                // have none — the target app sees a stationary finger appearing
-                // in a new place.
-                val elapsed = (System.currentTimeMillis() - dragStart).coerceIn(20, 2000)
-                dispatch(dragPath, elapsed, willContinue = true)
+                if (lastPoint == null) return
+                moved = true
+                // Coalesced: only the newest position matters, and the pump
+                // sends one segment per completed gesture rather than queueing
+                // every event the sender managed to produce.
+                pendingPoint = PointF(x, y)
+                pump()
             }
 
-            "up", "cancel" -> {
-                if (!dragging) return
-                dragPath.lineTo(x, y)
-                val elapsed = (System.currentTimeMillis() - dragStart).coerceIn(30, 3000)
-                dispatch(dragPath, elapsed, willContinue = false)
-                dragging = false
+            "up" -> {
+                val start = lastPoint ?: return
+
+                if (!moved) {
+                    // A press and release in the same place is a tap, and a tap
+                    // is a short stroke rather than a zero-length one, which the
+                    // platform rejects.
+                    tap(start, System.currentTimeMillis() - downAt)
+                    reset()
+                    return
+                }
+
+                pendingPoint = PointF(x, y)
+                finishing = true
+                pump()
             }
+
+            "cancel" -> reset()
         }
+    }
+
+    private fun tap(at: PointF, heldMs: Long) {
+        val path = Path().apply {
+            moveTo(at.x, at.y)
+            lineTo(at.x + 1f, at.y + 1f)
+        }
+        dispatch(path, heldMs.coerceIn(40, 900), willContinue = false)
+    }
+
+    private fun pump() {
+        if (inFlight) return
+
+        val from = lastPoint ?: return
+        val to = pendingPoint ?: return
+        pendingPoint = null
+
+        // A zero-length path is refused outright, so a stationary finger just
+        // holds the stroke open until the next real movement.
+        if (kotlin.math.abs(to.x - from.x) < 1f && kotlin.math.abs(to.y - from.y) < 1f) {
+            if (!finishing) return
+        }
+
+        val path = Path().apply {
+            moveTo(from.x, from.y)
+            lineTo(if (to.x == from.x) to.x + 0.5f else to.x, if (to.y == from.y) to.y + 0.5f else to.y)
+        }
+
+        val willContinue = !finishing
+        val previous = activeStroke
+        val stroke = try {
+            previous?.continueStroke(path, 0, SEGMENT_MS, willContinue)
+                ?: GestureDescription.StrokeDescription(path, 0, SEGMENT_MS, willContinue)
+        } catch (e: Exception) {
+            Log.w(TAG, "stroke rejected: ${e.message}")
+            reset()
+            return
+        }
+
+        inFlight = true
+        val ended = finishing
+
+        val dispatched = runCatching {
+            dispatchGesture(
+                GestureDescription.Builder().addStroke(stroke).build(),
+                object : GestureResultCallback() {
+                    override fun onCompleted(description: GestureDescription?) {
+                        inFlight = false
+                        lastPoint = to
+                        activeStroke = if (ended) null else stroke
+                        if (ended) reset() else pump()
+                    }
+
+                    override fun onCancelled(description: GestureDescription?) {
+                        inFlight = false
+                        activeStroke = null
+                        if (ended) reset()
+                    }
+                },
+                handler,
+            )
+        }.getOrDefault(false)
+
+        if (!dispatched) {
+            inFlight = false
+            activeStroke = null
+        }
+    }
+
+    private fun reset() {
+        activeStroke = null
+        lastPoint = null
+        pendingPoint = null
+        finishing = false
+        inFlight = false
+        moved = false
     }
 
     fun gesture(command: InputGesture) {
@@ -252,6 +354,14 @@ class RemoteInputService : AccessibilityService() {
     }
 
     companion object {
+        /**
+         * How long one drag segment takes. Short enough that the finger keeps up
+         * with the cursor, long enough that the platform does not reject it —
+         * below about 20 ms the gesture is treated as instantaneous and the app
+         * being driven sees a jump rather than a drag.
+         */
+        private const val SEGMENT_MS = 32L
+
         private val instance = AtomicReference<RemoteInputService?>(null)
 
         /** Null when the user has not granted accessibility access. */

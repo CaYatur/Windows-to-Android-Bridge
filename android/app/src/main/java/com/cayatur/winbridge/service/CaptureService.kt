@@ -441,7 +441,8 @@ private class TileEncoder(val width: Int, val height: Int, val quality: Int) {
     private var first = true
 
     private val tile = Bitmap.createBitmap(TILE, TILE, Bitmap.Config.ARGB_8888)
-    private val pixels = IntArray(TILE * TILE)
+    private val tilePixels = IntArray(TILE * TILE)
+    private var pixels = ByteArray(0)
     private val jpeg = ByteArrayOutputStream(24 * 1024)
     private val packet = ByteArrayOutputStream(TileCodec.MAX_PACKET_BYTES)
 
@@ -452,6 +453,15 @@ private class TileEncoder(val width: Int, val height: Int, val quality: Int) {
         pixelStride: Int,
         emit: (ByteArray, Boolean, Boolean) -> Unit,
     ) {
+        // One bulk read, not a get() per byte. A direct ByteBuffer charges for
+        // every single-index access, and hashing a frame touches tens of
+        // thousands of them — which is most of the per-frame cost, and it is
+        // paid whether or not anything on screen actually moved.
+        val needed = rowStride * height
+        if (pixels.size < needed) pixels = ByteArray(needed)
+        buffer.position(0)
+        buffer.get(pixels, 0, minOf(needed, buffer.remaining()))
+
         val keyframe = first
         var keyframeSent = false
         first = false
@@ -467,11 +477,11 @@ private class TileEncoder(val width: Int, val height: Int, val quality: Int) {
                 val tileHeight = min(TILE, height - y)
                 val index = row * columns + column
 
-                val hash = hash(buffer, rowStride, pixelStride, x, y, tileWidth, tileHeight)
+                val hash = hash(rowStride, pixelStride, x, y, tileWidth, tileHeight)
                 if (!keyframe && hashes[index] == hash) continue
                 hashes[index] = hash
 
-                val bytes = compress(buffer, rowStride, pixelStride, x, y, tileWidth, tileHeight)
+                val bytes = compress(rowStride, pixelStride, x, y, tileWidth, tileHeight)
 
                 if (packet.size() > 0 && packet.size() + bytes.size + 6 > TileCodec.MAX_PACKET_BYTES) {
                     emit(packet.toByteArray(), keyframe && !keyframeSent, false)
@@ -496,17 +506,18 @@ private class TileEncoder(val width: Int, val height: Int, val quality: Int) {
      * actually moves.
      */
     private fun hash(
-        buffer: ByteBuffer, rowStride: Int, pixelStride: Int,
+        rowStride: Int, pixelStride: Int,
         x: Int, y: Int, tileWidth: Int, tileHeight: Int,
     ): Long {
+        val data = pixels
         var value = -3750763034362895579L   // FNV offset basis
         for (row in 0 until tileHeight) {
             var at = (y + row) * rowStride + x * pixelStride
             var column = 0
             while (column < tileWidth) {
-                value = (value xor (buffer.get(at).toLong() and 0xFF)) * 1099511628211L
-                value = (value xor (buffer.get(at + 1).toLong() and 0xFF)) * 1099511628211L
-                value = (value xor (buffer.get(at + 2).toLong() and 0xFF)) * 1099511628211L
+                value = (value xor (data[at].toLong() and 0xFF)) * 1099511628211L
+                value = (value xor (data[at + 1].toLong() and 0xFF)) * 1099511628211L
+                value = (value xor (data[at + 2].toLong() and 0xFF)) * 1099511628211L
                 at += pixelStride * 4
                 column += 4
             }
@@ -515,28 +526,29 @@ private class TileEncoder(val width: Int, val height: Int, val quality: Int) {
     }
 
     private fun compress(
-        buffer: ByteBuffer, rowStride: Int, pixelStride: Int,
+        rowStride: Int, pixelStride: Int,
         x: Int, y: Int, tileWidth: Int, tileHeight: Int,
     ): ByteArray {
+        val data = pixels
         for (row in 0 until tileHeight) {
             var at = (y + row) * rowStride + x * pixelStride
             for (column in 0 until tileWidth) {
-                val r = buffer.get(at).toInt() and 0xFF
-                val g = buffer.get(at + 1).toInt() and 0xFF
-                val b = buffer.get(at + 2).toInt() and 0xFF
+                val r = data[at].toInt() and 0xFF
+                val g = data[at + 1].toInt() and 0xFF
+                val b = data[at + 2].toInt() and 0xFF
                 // The source is RGBA and Bitmap wants ARGB; alpha is forced
                 // opaque because a screen grab has none worth carrying.
-                pixels[row * tileWidth + column] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+                tilePixels[row * tileWidth + column] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
                 at += pixelStride
             }
         }
 
         val target = if (tileWidth == TILE && tileHeight == TILE) {
-            tile.also { it.setPixels(pixels, 0, TILE, 0, 0, TILE, TILE) }
+            tile.also { it.setPixels(tilePixels, 0, TILE, 0, 0, TILE, TILE) }
         } else {
             // Edge tiles are narrower or shorter; encoding them at their real
             // size avoids sending a black border the receiver has to know about.
-            Bitmap.createBitmap(pixels, 0, tileWidth, tileWidth, tileHeight, Bitmap.Config.ARGB_8888)
+            Bitmap.createBitmap(tilePixels, 0, tileWidth, tileWidth, tileHeight, Bitmap.Config.ARGB_8888)
         }
 
         jpeg.reset()
