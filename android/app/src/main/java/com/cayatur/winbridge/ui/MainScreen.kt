@@ -113,6 +113,10 @@ fun MainScreen(onPair: () -> Unit) {
                 Tab.SYSTEM -> systemSection()
                 Tab.AUTOMATIONS -> AutomationsSection()
                 Tab.MORE -> {
+                    // Pairing first: it was at the top before 0.2.0 and it is
+                    // still the thing someone opens this tab for when something
+                    // is wrong. The new switches go underneath it.
+                    SettingsSection(onPair = onPair)
                     MoreSection(
                         onOpenScreen = {
                             context.startActivity(
@@ -125,7 +129,6 @@ fun MainScreen(onPair: () -> Unit) {
                             )
                         },
                     )
-                    SettingsSection(onPair = onPair)
                 }
             }
 

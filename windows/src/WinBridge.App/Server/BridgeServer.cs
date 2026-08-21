@@ -286,7 +286,7 @@ public sealed class BridgeServer : IAsyncDisposable
             settings.TcpPort,
             _btMac);
 
-        Log?.Invoke($"pairing open for {PairingService.Window.TotalSeconds:0}s ({method})");
+        Emit($"pairing open for {PairingService.Window.TotalSeconds:0}s ({method})");
 
         // Close the window on a timer as well as on success, so an abandoned
         // pairing does not leave the machine accepting new devices.
@@ -346,7 +346,7 @@ public sealed class BridgeServer : IAsyncDisposable
 
                 store.SavePairing(session.PeerDeviceId, session.PeerName, session.PeerPlatform, real);
                 Pairing.Close();
-                Log?.Invoke($"paired with {session.PeerName}");
+                Emit($"paired with {session.PeerName}");
             }
             else
             {
@@ -354,27 +354,27 @@ public sealed class BridgeServer : IAsyncDisposable
             }
 
             var client = new ClientSession(session, connection.Carrier, _services!);
-            client.Log += m => Log?.Invoke($"[{session.PeerName}] {m}");
+            client.Log += m => Emit($"[{session.PeerName}] {m}");
 
             _sessions[id] = client;
             SessionsChanged?.Invoke();
-            Log?.Invoke($"{session.PeerName} connected over {connection.Carrier}");
+            Emit($"{session.PeerName} connected over {connection.Carrier}");
 
             await client.RunAsync(ct);
         }
         catch (ProtocolException ex)
         {
-            Log?.Invoke($"refused {connection.RemoteDescription}: {ex.Message}");
+            Emit($"refused {connection.RemoteDescription}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Log?.Invoke($"{connection.RemoteDescription} dropped: {ex.Message}");
+            Emit($"{connection.RemoteDescription} dropped: {ex.Message}");
         }
         finally
         {
             if (_sessions.TryRemove(id, out var gone))
             {
-                Log?.Invoke($"{gone.PeerName} disconnected");
+                Emit($"{gone.PeerName} disconnected");
                 SessionsChanged?.Invoke();
                 ConsiderLocking(gone.PeerName);
             }
@@ -398,7 +398,7 @@ public sealed class BridgeServer : IAsyncDisposable
             return false;
 
         bool ok = TcpCarrier.IsPrivateAddress(endpoint.Address);
-        if (!ok) Log?.Invoke($"pairing refused from non-local address {endpoint.Address}");
+        if (!ok) Emit($"pairing refused from non-local address {endpoint.Address}");
         return ok;
     }
 

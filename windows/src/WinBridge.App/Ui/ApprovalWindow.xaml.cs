@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using WinBridge.App.Features.Automation;
+using WinBridge.App.Localization;
 
 namespace WinBridge.App.Ui;
 
@@ -20,28 +21,29 @@ public partial class ApprovalWindow : Window
     {
         InitializeComponent();
 
-        Title = request.IsSaveApproval ? "Approve automation" : "Run automation";
+        Title = Strings.Get(request.IsSaveApproval ? "approve.title.save" : "approve.title.run");
+        BtnAllow.Content = Strings.Get("approve.allow");
+        BtnRefuse.Content = Strings.Get("approve.refuse");
         LblTitle.Text = $"{request.Title}\n\"{request.AutomationName}\" — from {request.DeviceName}";
 
         (LblRisk.Text, RiskBorder.Background) = request.Risk switch
         {
             "dangerous" => (
-                "This automation contains commands that can delete data or change how Windows starts. "
-                + "Read every line below before allowing it.",
+                Strings.Get("approve.risk.dangerous"),
                 (Brush)new SolidColorBrush(Color.FromRgb(0x8A, 0x1F, 0x2A))),
             "shell" => (
-                "This automation runs shell commands on this PC with your account.",
+                Strings.Get("approve.risk.shell"),
                 new SolidColorBrush(Color.FromRgb(0x7A, 0x5A, 0x14))),
             "elevated-input" => (
-                "This automation controls windows, processes, files or input on this PC.",
+                Strings.Get("approve.risk.input"),
                 new SolidColorBrush(Color.FromRgb(0x2A, 0x3E, 0x6B))),
             _ => (
-                "This automation only reads state and controls media.",
+                Strings.Get("approve.risk.safe"),
                 new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x2C))),
         };
 
         LblSteps.Text = request.Lines.Count == 0
-            ? "(no steps)"
+            ? Strings.Get("approve.nosteps")
             : string.Join(Environment.NewLine, request.Lines);
 
         // Refuse is the default focus. Someone hitting Enter on a dialog that

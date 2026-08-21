@@ -1,4 +1,5 @@
 using WinBridge.App.Features;
+using WinBridge.App.Localization;
 using WinBridge.Core.Protocol;
 using Model = WinBridge.Core.Protocol;
 
@@ -327,7 +328,7 @@ public sealed class ClientSession(
         {
             string preview = clip.Text ?? "(image)";
             services.Notifications.Toast(
-                $"Copied from {clip.Label ?? PeerName}",
+                Strings.Format("clip.copied", clip.Label ?? PeerName),
                 preview.Length > 120 ? preview[..120] + "…" : preview);
         }
         if (applied) Log?.Invoke($"clipboard from {PeerName} applied");

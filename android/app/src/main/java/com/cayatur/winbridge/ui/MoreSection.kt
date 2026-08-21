@@ -51,7 +51,11 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
 
         // ---- actions --------------------------------------------------------
-        Text("Do something", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            stringResource(R.string.more_actions),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
         Spacer(Modifier.height(8.dp))
 
         FlowActions(
@@ -67,7 +71,7 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(answer.title ?: "PC screen", fontWeight = FontWeight.SemiBold)
+                    Text(answer.title ?: stringResource(R.string.pc_screen), fontWeight = FontWeight.SemiBold)
                     answer.text?.let {
                         Text(it.take(1200), style = MaterialTheme.typography.bodySmall)
                     }
@@ -201,17 +205,24 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
         // ---- what the PC allows ---------------------------------------------
         features?.let { host ->
             Spacer(Modifier.height(18.dp))
-            Text("Your PC allows", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.more_pc_allows), fontWeight = FontWeight.SemiBold)
+            val on = stringResource(R.string.more_on)
+            val off = stringResource(R.string.more_off)
+            val carrierNote = stringResource(R.string.more_carrier_note)
+            val clipboardLabel = stringResource(R.string.settings_clipboard_to_pc)
+
             Hint(
                 buildString {
-                    append("clipboard ")
-                    append(if (host.clipboard.send || host.clipboard.receive) "on" else "off")
-                    append(" · files ").append(if (host.files.enabled) "on" else "off")
-                    append(" · screen ").append(if (host.screen.send) "on" else "off")
-                    append(" · input ").append(if (host.input.receive) "on" else "off")
-                    append(" · automations ").append(if (host.automations) "on" else "off")
-                    append(" · shell ").append(if (host.shell) "on" else "off")
-                    if (!host.screen.carrierOk) append("\nMirroring needs the Wi-Fi link on this connection.")
+                    append(stringResourceName(R.string.settings_files)).append(' ')
+                    append(if (host.files.enabled) on else off)
+                    append(" · ").append(stringResourceName(R.string.settings_screen_share)).append(' ')
+                    append(if (host.screen.send) on else off)
+                    append(" · ").append(stringResourceName(R.string.settings_remote_input)).append(' ')
+                    append(if (host.input.receive) on else off)
+                    append(" · ").append(stringResourceName(R.string.automations_title)).append(' ')
+                    append(if (host.automations) on else off)
+                    append(" · shell ").append(if (host.shell) on else off)
+                    if (!host.screen.carrierOk) append('\n').append(carrierNote)
                 },
             )
         }
@@ -235,7 +246,7 @@ private fun FlowActions(
         Row {
             ActionButton(Icons.Filled.Mic, stringResource(R.string.voice_command), onVoice, Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            ActionButton(Icons.Filled.Visibility, "What is on screen", onDescribe, Modifier.weight(1f))
+            ActionButton(Icons.Filled.Visibility, stringResource(R.string.more_whats_on_screen), onDescribe, Modifier.weight(1f))
         }
     }
 }
@@ -287,6 +298,10 @@ private fun PermissionRow(granted: Boolean, hint: String, onOpen: () -> Unit) {
         Text(hint, style = MaterialTheme.typography.labelSmall)
     }
 }
+
+/** Reads a resource inside a non-composable builder without a lint complaint. */
+@Composable
+private fun stringResourceName(id: Int): String = stringResource(id)
 
 @Composable
 private fun Hint(text: String) {

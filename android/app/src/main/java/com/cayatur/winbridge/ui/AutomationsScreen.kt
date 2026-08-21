@@ -3,10 +3,8 @@ package com.cayatur.winbridge.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -218,7 +216,7 @@ private fun Hint(text: String) {
 private fun blankAutomation() = Automation(
     id = "",
     name = "",
-    steps = listOf(AutoStep(id = "s0", type = StepTypes.NOTIFY, text = "Hello from my phone")),
+    steps = listOf(AutoStep(id = "s0", type = StepTypes.NOTIFY)),
 )
 
 @Composable
@@ -230,19 +228,21 @@ private fun AutomationEditor(
     onCancel: () -> Unit,
     onSave: (Automation) -> Unit,
 ) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        Text("Automation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    // No verticalScroll here: the screen that hosts this already scrolls, and
+    // nesting two of them hands the inner one an infinite height, which Compose
+    // refuses at measure time — it crashes the app rather than laying out badly.
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text(
+            stringResource(R.string.auto_editor_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
         Spacer(Modifier.height(10.dp))
 
         OutlinedTextField(
             value = automation.name,
             onValueChange = { onChange(automation.copy(name = it)) },
-            label = { Text("Name") },
+            label = { Text(stringResource(R.string.auto_name)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -251,7 +251,7 @@ private fun AutomationEditor(
         OutlinedTextField(
             value = automation.description.orEmpty(),
             onValueChange = { onChange(automation.copy(description = it.ifBlank { null })) },
-            label = { Text("Description") },
+            label = { Text(stringResource(R.string.auto_description)) },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -260,18 +260,18 @@ private fun AutomationEditor(
                 checked = automation.confirmEachRun,
                 onCheckedChange = { onChange(automation.copy(confirmEachRun = it)) },
             )
-            Text("Ask on the PC before every run")
+            Text(stringResource(R.string.auto_confirm_each))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = automation.requireUnlocked,
                 onCheckedChange = { onChange(automation.copy(requireUnlocked = it)) },
             )
-            Text("Only when the PC is unlocked")
+            Text(stringResource(R.string.auto_require_unlocked))
         }
 
         Spacer(Modifier.height(14.dp))
-        Text("Steps", fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.auto_steps), fontWeight = FontWeight.SemiBold)
 
         StepList(
             steps = automation.steps,
@@ -286,16 +286,13 @@ private fun AutomationEditor(
             Button(
                 onClick = { onSave(automation) },
                 enabled = automation.name.isNotBlank() && automation.steps.isNotEmpty(),
-            ) { Text("Save to PC") }
+            ) { Text(stringResource(R.string.auto_save)) }
             Spacer(Modifier.width(8.dp))
-            OutlinedButton(onClick = onCancel) { Text("Cancel") }
+            OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.auto_cancel)) }
         }
 
         Spacer(Modifier.height(10.dp))
-        Hint(
-            "Saved automations live on the PC. Anything that runs commands or " +
-                "controls windows has to be approved there before it will run.",
-        )
+        Hint(stringResource(R.string.auto_editor_note))
     }
 }
 
@@ -337,7 +334,7 @@ private fun StepList(
         }) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add step")
+            Text(stringResource(R.string.auto_add_step))
         }
     }
 }
@@ -383,13 +380,13 @@ private fun StepCard(
                 }
 
                 IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
-                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move up")
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.auto_move_up))
                 }
                 IconButton(onClick = { onMove(1) }, enabled = canMoveDown) {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move down")
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.auto_move_down))
                 }
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.Close, contentDescription = "Remove")
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.auto_remove))
                 }
             }
 
@@ -397,16 +394,16 @@ private fun StepCard(
 
             if (step.type in StepTypes.CONTAINERS) {
                 if (step.type == StepTypes.IF) {
-                    Text("Then", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.auto_then), style = MaterialTheme.typography.labelMedium)
                     StepList(step.then, allowedTypes, shellEnabled, depth + 1) {
                         onChange(step.copy(then = it))
                     }
-                    Text("Else", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.auto_else), style = MaterialTheme.typography.labelMedium)
                     StepList(step.otherwise, allowedTypes, shellEnabled, depth + 1) {
                         onChange(step.copy(otherwise = it))
                     }
                 } else {
-                    Text("Do", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.auto_do), style = MaterialTheme.typography.labelMedium)
                     StepList(step.body2, allowedTypes, shellEnabled, depth + 1) {
                         onChange(step.copy(body2 = it))
                     }
@@ -454,126 +451,129 @@ private fun StepFields(step: AutoStep, onChange: (AutoStep) -> Unit) {
 
     when (step.type) {
         StepTypes.SHELL -> {
-            field("Command", step.command, { onChange(step.copy(command = it)) }, mono = true)
-            field("Shell (cmd, powershell, exec)", step.shell, { onChange(step.copy(shell = it)) })
-            field("Store output in variable", step.name, { onChange(step.copy(name = it.ifBlank { null })) })
+            field(stringResource(R.string.field_command), step.command, { onChange(step.copy(command = it)) }, mono = true)
+            field(stringResource(R.string.field_shell), step.shell, { onChange(step.copy(shell = it)) })
+            field(stringResource(R.string.field_store_output), step.name, { onChange(step.copy(name = it.ifBlank { null })) })
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = step.onErrorContinue,
                     onCheckedChange = { onChange(step.copy(onErrorContinue = it)) },
                 )
-                Text("Keep going if it fails")
+                Text(stringResource(R.string.field_continue_on_error))
             }
         }
 
-        StepTypes.OPEN -> field("URL or path", step.target, { onChange(step.copy(target = it)) })
+        StepTypes.OPEN -> field(stringResource(R.string.field_url_or_path), step.target, { onChange(step.copy(target = it)) })
 
         StepTypes.WINDOW -> {
-            field("Window or process", step.target, { onChange(step.copy(target = it)) })
-            field("Action (focus, close, minimize, maximize)", step.action, { onChange(step.copy(action = it)) })
+            field(stringResource(R.string.field_window_or_process), step.target, { onChange(step.copy(target = it)) })
+            field(stringResource(R.string.field_window_action), step.action, { onChange(step.copy(action = it)) })
         }
 
         StepTypes.PROCESS -> {
-            field("Program", step.target, { onChange(step.copy(target = it)) })
-            field("Action (start, kill)", step.action, { onChange(step.copy(action = it)) })
+            field(stringResource(R.string.field_program), step.target, { onChange(step.copy(target = it)) })
+            field(stringResource(R.string.field_process_action), step.action, { onChange(step.copy(action = it)) })
         }
 
         StepTypes.KEY -> {
-            field("Key", step.key, { onChange(step.copy(key = it)) })
-            field("Modifiers, comma separated", step.mods.joinToString(","), {
+            field(stringResource(R.string.field_key), step.key, { onChange(step.copy(key = it)) })
+            field(stringResource(R.string.field_mods), step.mods.joinToString(","), {
                 onChange(step.copy(mods = it.split(',').map(String::trim).filter(String::isNotEmpty)))
             })
         }
 
         StepTypes.TYPE_TEXT, StepTypes.NOTIFY, StepTypes.LOG,
         StepTypes.PHONE_NOTIFY, StepTypes.PHONE_CLIP,
-        -> field("Text", step.text, { onChange(step.copy(text = it)) })
+        -> field(stringResource(R.string.field_text), step.text, { onChange(step.copy(text = it)) })
 
         StepTypes.VOLUME -> {
-            field("Action (set, mute, unmute, up, down)", step.action, { onChange(step.copy(action = it)) })
-            number("Level", step.number) { onChange(step.copy(number = it)) }
+            field(stringResource(R.string.field_volume_action), step.action, { onChange(step.copy(action = it)) })
+            number(stringResource(R.string.field_level), step.number) { onChange(step.copy(number = it)) }
         }
 
-        StepTypes.MEDIA -> field("Action (play, pause, next, prev)", step.action, { onChange(step.copy(action = it)) })
+        StepTypes.MEDIA -> field(stringResource(R.string.field_media_action), step.action, { onChange(step.copy(action = it)) })
 
-        StepTypes.POWER -> field("Action (lock, sleep, shutdown, restart)", step.action, { onChange(step.copy(action = it)) })
+        StepTypes.POWER -> field(stringResource(R.string.field_power_action), step.action, { onChange(step.copy(action = it)) })
 
         StepTypes.FILE -> {
-            field("Action (read, write, copy, move, delete, exists)", step.action, { onChange(step.copy(action = it)) })
-            field("Path", step.path, { onChange(step.copy(path = it)) }, mono = true)
-            field("Destination", step.destination, { onChange(step.copy(destination = it)) }, mono = true)
-            field("Text (for write)", step.text, { onChange(step.copy(text = it)) })
+            field(stringResource(R.string.field_file_action), step.action, { onChange(step.copy(action = it)) })
+            field(stringResource(R.string.field_path), step.path, { onChange(step.copy(path = it)) }, mono = true)
+            field(stringResource(R.string.field_destination), step.destination, { onChange(step.copy(destination = it)) }, mono = true)
+            field(stringResource(R.string.field_text_for_write), step.text, { onChange(step.copy(text = it)) })
         }
 
         StepTypes.HTTP -> {
-            field("URL", step.url, { onChange(step.copy(url = it)) }, mono = true)
-            field("Method", step.method, { onChange(step.copy(method = it)) })
-            field("Body", step.body, { onChange(step.copy(body = it)) }, mono = true)
+            field(stringResource(R.string.field_url), step.url, { onChange(step.copy(url = it)) }, mono = true)
+            field(stringResource(R.string.field_method), step.method, { onChange(step.copy(method = it)) })
+            field(stringResource(R.string.field_body), step.body, { onChange(step.copy(body = it)) }, mono = true)
         }
 
-        StepTypes.DELAY -> number("Milliseconds", step.number) { onChange(step.copy(number = it)) }
+        StepTypes.DELAY -> number(stringResource(R.string.field_milliseconds), step.number) { onChange(step.copy(number = it)) }
 
         StepTypes.SET -> {
-            field("Variable", step.name, { onChange(step.copy(name = it)) })
-            field("Expression", step.value, { onChange(step.copy(value = it)) }, mono = true)
+            field(stringResource(R.string.field_variable), step.name, { onChange(step.copy(name = it)) })
+            field(stringResource(R.string.field_expression), step.value, { onChange(step.copy(value = it)) }, mono = true)
         }
 
         StepTypes.IF, StepTypes.WHILE ->
-            field("Condition", step.condition, { onChange(step.copy(condition = it)) }, mono = true)
+            field(stringResource(R.string.field_condition), step.condition, { onChange(step.copy(condition = it)) }, mono = true)
 
-        StepTypes.REPEAT -> number("Times", step.count.toDouble()) { onChange(step.copy(count = it.toInt())) }
+        StepTypes.REPEAT -> number(stringResource(R.string.field_times), step.count.toDouble()) { onChange(step.copy(count = it.toInt())) }
 
         StepTypes.FOREACH -> {
-            field("Items expression", step.items, { onChange(step.copy(items = it)) }, mono = true)
-            field("Variable name", step.variable, { onChange(step.copy(variable = it)) })
+            field(stringResource(R.string.field_items_expression), step.items, { onChange(step.copy(items = it)) }, mono = true)
+            field(stringResource(R.string.field_variable_name), step.variable, { onChange(step.copy(variable = it)) })
         }
 
-        StepTypes.PHONE_RING -> number("Seconds", step.number) { onChange(step.copy(number = it)) }
+        StepTypes.PHONE_RING -> number(stringResource(R.string.field_seconds), step.number) { onChange(step.copy(number = it)) }
 
         StepTypes.SCREENSHOT, StepTypes.DESCRIBE -> {
-            field("Monitor (blank for primary)", step.target, { onChange(step.copy(target = it)) })
-            field("Store in variable", step.name, { onChange(step.copy(name = it.ifBlank { null })) })
+            field(stringResource(R.string.field_monitor), step.target, { onChange(step.copy(target = it)) })
+            field(stringResource(R.string.field_store_in), step.name, { onChange(step.copy(name = it.ifBlank { null })) })
         }
 
         else -> Unit
     }
 
     if (step.type !in setOf(StepTypes.BREAK, StepTypes.CONTINUE, StepTypes.RETURN)) {
-        field("Note", step.note, { onChange(step.copy(note = it.ifBlank { null })) })
+        field(stringResource(R.string.field_note), step.note, { onChange(step.copy(note = it.ifBlank { null })) })
     }
 }
 
-private fun labelFor(type: String): String = when (type) {
-    StepTypes.SHELL -> "Run a command"
-    StepTypes.OPEN -> "Open"
-    StepTypes.WINDOW -> "Window"
-    StepTypes.PROCESS -> "Process"
-    StepTypes.KEY -> "Press a key"
-    StepTypes.TYPE_TEXT -> "Type text"
-    StepTypes.MOUSE -> "Mouse"
-    StepTypes.MEDIA -> "Media"
-    StepTypes.VOLUME -> "Volume"
-    StepTypes.POWER -> "Power"
-    StepTypes.CLIP_GET -> "Read the PC clipboard"
-    StepTypes.CLIP_SET -> "Set the PC clipboard"
-    StepTypes.NOTIFY -> "Show a message on the PC"
-    StepTypes.FILE -> "File"
-    StepTypes.HTTP -> "HTTP request"
-    StepTypes.DELAY -> "Wait"
-    StepTypes.SET -> "Set a variable"
-    StepTypes.IF -> "If"
-    StepTypes.WHILE -> "While"
-    StepTypes.REPEAT -> "Repeat"
-    StepTypes.FOREACH -> "For each"
-    StepTypes.BREAK -> "Break"
-    StepTypes.CONTINUE -> "Continue"
-    StepTypes.RETURN -> "Stop"
-    StepTypes.LOG -> "Log"
-    StepTypes.SCREENSHOT -> "Screenshot"
-    StepTypes.DESCRIBE -> "Describe the screen"
-    StepTypes.PHONE_NOTIFY -> "Notify this phone"
-    StepTypes.PHONE_RING -> "Ring this phone"
-    StepTypes.PHONE_CLIP -> "Copy to this phone"
-    StepTypes.CALL -> "Run another automation"
-    else -> type
-}
+@Composable
+private fun labelFor(type: String): String = stringResource(
+    when (type) {
+        StepTypes.SHELL -> R.string.step_shell
+        StepTypes.OPEN -> R.string.step_open
+        StepTypes.WINDOW -> R.string.step_window
+        StepTypes.PROCESS -> R.string.step_process
+        StepTypes.KEY -> R.string.step_key
+        StepTypes.TYPE_TEXT -> R.string.step_type
+        StepTypes.MOUSE -> R.string.step_mouse
+        StepTypes.MEDIA -> R.string.step_media
+        StepTypes.VOLUME -> R.string.step_volume
+        StepTypes.POWER -> R.string.step_power
+        StepTypes.CLIP_GET -> R.string.step_clip_get
+        StepTypes.CLIP_SET -> R.string.step_clip_set
+        StepTypes.NOTIFY -> R.string.step_notify
+        StepTypes.FILE -> R.string.step_file
+        StepTypes.HTTP -> R.string.step_http
+        StepTypes.DELAY -> R.string.step_delay
+        StepTypes.SET -> R.string.step_set
+        StepTypes.IF -> R.string.step_if
+        StepTypes.WHILE -> R.string.step_while
+        StepTypes.REPEAT -> R.string.step_repeat
+        StepTypes.FOREACH -> R.string.step_foreach
+        StepTypes.BREAK -> R.string.step_break
+        StepTypes.CONTINUE -> R.string.step_continue
+        StepTypes.RETURN -> R.string.step_return
+        StepTypes.LOG -> R.string.step_log
+        StepTypes.SCREENSHOT -> R.string.step_screenshot
+        StepTypes.DESCRIBE -> R.string.step_describe
+        StepTypes.PHONE_NOTIFY -> R.string.step_phone_notify
+        StepTypes.PHONE_RING -> R.string.step_phone_ring
+        StepTypes.PHONE_CLIP -> R.string.step_phone_clip
+        StepTypes.CALL -> R.string.step_call
+        else -> R.string.step_log
+    },
+)

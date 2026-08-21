@@ -56,6 +56,9 @@ public partial class App : System.Windows.Application
         _singleInstance = new Mutex(true, @"Local\WinBridge.SingleInstance", out bool isFirst);
         if (!isFirst)
         {
+            // Hand the request to the copy that owns the port instead of dying
+            // silently, which is what --pair did before.
+            if (e.Args.Contains("--pair")) ShellIntegration.RequestPairing();
             Shutdown();
             return;
         }
@@ -149,8 +152,8 @@ public partial class App : System.Windows.Application
                 : $"{Math.Max(1, offer.Size / 1024)} KB";
 
             bool accept = await Dispatcher.InvokeAsync(() => MessageBox.Show(
-                $"Save \"{offer.Name}\" ({size}) to\n{folder}?",
-                "WinBridge — incoming file",
+                Strings.Format("xfer.incoming.body", offer.Name, size, folder),
+                Strings.Get("xfer.incoming.title"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question) == MessageBoxResult.Yes).Task;
 
@@ -159,8 +162,8 @@ public partial class App : System.Windows.Application
 
         Server.Files.Completed += (saved, name, error) =>
         {
-            if (saved is null) Server.Notifications.Toast("Transfer failed", $"{name}: {error}", "error");
-            else Server.Notifications.Toast("File received", Path.GetFileName(saved));
+            if (saved is null) Server.Notifications.Toast(Strings.Get("xfer.failed"), $"{name}: {error}", "error");
+            else Server.Notifications.Toast(Strings.Get("xfer.received"), Path.GetFileName(saved));
 
             if (saved is not null && Store.Settings.Files.OpenFolderWhenDone)
             {
@@ -176,6 +179,8 @@ public partial class App : System.Windows.Application
 
         _shellWatch = new CancellationTokenSource();
         ShellIntegration.Watch(SendToPhone, _shellWatch.Token);
+        ShellIntegration.WatchPairingRequests(
+            () => Dispatcher.BeginInvoke(ShowPairing), _shellWatch.Token);
     }
 
     /// <summary>Sends a batch to the phone that has been connected longest.</summary>
@@ -184,7 +189,7 @@ public partial class App : System.Windows.Application
         var session = Server.Primary;
         if (session is null)
         {
-            Server.Notifications.Toast("No phone connected", "Connect a phone and try again.", "warn");
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
             return;
         }
 
@@ -194,12 +199,12 @@ public partial class App : System.Windows.Application
             {
                 int count = await Server.Files.SendAsync(session, paths, CancellationToken.None);
                 Server.Notifications.Toast(
-                    "Sending to " + session.PeerName,
-                    count == 1 ? Path.GetFileName(paths[0]) : $"{count} items");
+                    Strings.Format("xfer.sending", session.PeerName),
+                    count == 1 ? Path.GetFileName(paths[0]) : Strings.Format("xfer.items", count));
             }
             catch (Exception ex)
             {
-                Server.Notifications.Toast("Could not send", ex.Message, "error");
+                Server.Notifications.Toast(Strings.Get("xfer.failed"), ex.Message, "error");
             }
         });
     }
@@ -259,7 +264,7 @@ public partial class App : System.Windows.Application
         var session = Server.Primary;
         if (session is null)
         {
-            Server.Notifications.Toast("No phone connected", "Connect a phone and try again.", "warn");
+            Server.Notifications.Toast(Strings.Get("nophone.title"), Strings.Get("nophone.body"), "warn");
             return;
         }
         _ = Server.PhoneMirror.OpenAsync(session, CancellationToken.None);

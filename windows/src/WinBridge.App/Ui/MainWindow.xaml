@@ -39,65 +39,63 @@
         <TabItem x:Name="TabFeatures" Header="Features">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource Heading}" Text="Clipboard" />
-                    <CheckBox x:Name="ChkClipToPhone" Content="Send what I copy here to the phone"
+                    <TextBlock x:Name="LblClipboardHead" Style="{StaticResource Heading}" />
+                    <CheckBox x:Name="ChkClipToPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkClipFromPhone" Content="Apply what the phone copies to this clipboard"
+                    <CheckBox x:Name="ChkClipFromPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkClipImages" Content="Include copied images (larger, LAN only)"
+                    <CheckBox x:Name="ChkClipImages"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Files" Margin="0,18,0,0" />
-                    <CheckBox x:Name="ChkFiles" Content="Accept file transfers"
+                    <TextBlock x:Name="LblFilesHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkFiles"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkFilesAuto" Content="Accept small files without asking"
+                    <CheckBox x:Name="ChkFilesAuto"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkShellMenu" Content="Add &quot;Send to phone&quot; to the Explorer right-click menu"
+                    <CheckBox x:Name="ChkShellMenu"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                        <TextBlock Text="Save to" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock x:Name="LblSaveTo" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <TextBox x:Name="TxtFolder" Width="330" Background="#FF2F2F36" Foreground="White"
                                  BorderThickness="0" Padding="6,4" LostFocus="OnFeatureChanged" />
                     </StackPanel>
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Screen sharing" Margin="0,18,0,0" />
-                    <CheckBox x:Name="ChkScreenShare" Content="Let a paired phone view this screen"
+                    <TextBlock x:Name="LblScreenHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkScreenShare"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkScreenAudio" Content="Send this PC audio with the screen"
+                    <CheckBox x:Name="ChkScreenAudio"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkViewPhone" Content="Let me open the phone screen from here"
+                    <CheckBox x:Name="ChkViewPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkInput" Content="Let the phone control this mouse and keyboard"
+                    <CheckBox x:Name="ChkInput"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <TextBlock Style="{StaticResource Dim}" Margin="24,0,0,0" TextWrapping="Wrap"
-                               Text="Mirroring and audio need the Wi-Fi link. Bluetooth cannot carry them and will refuse rather than crawl." />
+                    <TextBlock x:Name="LblCarrierHint" Style="{StaticResource Dim}" Margin="24,0,0,0" TextWrapping="Wrap" />
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Audio" Margin="0,18,0,0" />
-                    <CheckBox x:Name="ChkAudioToPhone" Content="Send this PC audio to the phone"
+                    <TextBlock x:Name="LblAudioHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkAudioToPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkAudioFromPhone" Content="Play phone audio here"
+                    <CheckBox x:Name="ChkAudioFromPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkMicToPhone" Content="Send this PC microphone to the phone"
+                    <CheckBox x:Name="ChkMicToPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkMicFromPhone" Content="Use the phone microphone here"
+                    <CheckBox x:Name="ChkMicFromPhone"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                        <TextBlock Text="Play phone audio on" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock x:Name="LblRenderDevice" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <ComboBox x:Name="CmbRenderDevice" Width="280" SelectionChanged="OnAudioDeviceChanged" />
                     </StackPanel>
-                    <TextBlock Style="{StaticResource Dim}" Margin="24,2,0,0" TextWrapping="Wrap"
-                               Text="Pointing this at a virtual cable (VB-Audio, VAC) makes the phone microphone selectable as a recording device in other apps. Windows will not let an app create a sound card of its own." />
+                    <TextBlock x:Name="LblVirtualCableHint" Style="{StaticResource Dim}" Margin="24,2,0,0" TextWrapping="Wrap" />
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Notifications" Margin="0,18,0,0" />
-                    <CheckBox x:Name="ChkNotifications" Content="Mirror phone notifications to this PC"
+                    <TextBlock x:Name="LblNotifHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkNotifications"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkNotifToasts" Content="Show a popup for each one"
+                    <CheckBox x:Name="ChkNotifToasts"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkNotifReply" Content="Allow replying from here"
+                    <CheckBox x:Name="ChkNotifReply"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Presence" Margin="0,18,0,0" />
-                    <CheckBox x:Name="ChkLockOnAway" Content="Lock this PC when the phone disconnects"
+                    <TextBlock x:Name="LblPresenceHead" Style="{StaticResource Heading}" Margin="0,18,0,0" />
+                    <CheckBox x:Name="ChkLockOnAway"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
                 </StackPanel>
             </ScrollViewer>
@@ -106,50 +104,48 @@
         <TabItem x:Name="TabAutomations" Header="Automations">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
-                    <CheckBox x:Name="ChkAutomations" Content="Allow the phone to run automations"
+                    <CheckBox x:Name="ChkAutomations"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkAutoAuthoring" Content="Allow the phone to create and edit them"
+                    <CheckBox x:Name="ChkAutoAuthoring"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
 
                     <Border Background="#FF3A2A12" CornerRadius="6" Padding="12" Margin="0,12,0,6">
                         <StackPanel>
-                            <CheckBox x:Name="ChkShell" Content="Allow steps that run CMD or PowerShell commands"
+                            <CheckBox x:Name="ChkShell"
                                       Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                            <TextBlock Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap"
-                                       Text="This lets an approved automation run commands as you. Every automation still has to be approved here, approval is bound to the exact command text, and editing one character asks again." />
+                            <TextBlock x:Name="LblShellHint" Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <TextBlock Text="When a trusted phone runs one" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock x:Name="LblTrustMode" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <ComboBox x:Name="CmbTrustMode" Width="260" SelectionChanged="OnTrustModeChanged">
-                            <ComboBoxItem Content="Always ask me (strict)" />
-                            <ComboBoxItem Content="Skip the prompt for allowlisted commands" />
+                            <ComboBoxItem x:Name="ItemStrict" />
+                            <ComboBoxItem x:Name="ItemTrusted" />
                         </ComboBox>
                     </StackPanel>
 
-                    <TextBlock Text="Allowlist — one command or program per line" Margin="0,12,0,4" />
+                    <TextBlock x:Name="LblAllowlist" Margin="0,12,0,4" />
                     <TextBox x:Name="TxtAllowlist" Height="90" AcceptsReturn="True" TextWrapping="NoWrap"
                              VerticalScrollBarVisibility="Auto" Background="#FF2F2F36" Foreground="White"
                              BorderThickness="0" Padding="6,4" FontFamily="Consolas" LostFocus="OnFeatureChanged" />
 
-                    <CheckBox x:Name="ChkAllowElevated" Content="Allow steps marked &quot;as administrator&quot;"
+                    <CheckBox x:Name="ChkAllowElevated"
                               Margin="0,10,0,0" Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkAllowNetwork" Content="Allow steps that make HTTP requests"
+                    <CheckBox x:Name="ChkAllowNetwork"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                    <CheckBox x:Name="ChkAllowFileWrite" Content="Allow steps that write, move or delete files"
+                    <CheckBox x:Name="ChkAllowFileWrite"
                               Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
 
                     <Border Background="#FF4A1620" CornerRadius="6" Padding="12" Margin="0,16,0,0">
                         <StackPanel>
-                            <CheckBox x:Name="ChkPanic" Content="Stop everything — refuse all automations now"
+                            <CheckBox x:Name="ChkPanic"
                                       Checked="OnFeatureChanged" Unchecked="OnFeatureChanged" />
-                            <TextBlock Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap"
-                                       Text="One switch that overrides the rest, for when something is wrong and you do not want to unpick which setting caused it." />
+                            <TextBlock x:Name="LblPanicHint" Style="{StaticResource Dim}" Margin="24,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Style="{StaticResource Heading}" Text="Recent runs" Margin="0,20,0,0" />
+                    <TextBlock x:Name="LblRunsHead" Style="{StaticResource Heading}" Margin="0,20,0,0" />
                     <Border Background="{StaticResource Card}" CornerRadius="8" Padding="12">
                         <TextBlock x:Name="LblAuditLog" FontFamily="Consolas" FontSize="12"
                                    Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
@@ -161,16 +157,16 @@
         <TabItem x:Name="TabSettings" Header="Settings">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
-                    <CheckBox x:Name="ChkStartup" Content="Start automatically when I sign in"
+                    <CheckBox x:Name="ChkStartup"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkBluetooth" Content="Accept Bluetooth connections"
+                    <CheckBox x:Name="ChkBluetooth"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkLan" Content="Accept Wi-Fi / LAN connections"
+                    <CheckBox x:Name="ChkLan"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
-                    <CheckBox x:Name="ChkPreferBt" Content="Prefer Bluetooth when both are available"
+                    <CheckBox x:Name="ChkPreferBt"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" />
 
-                    <CheckBox x:Name="ChkRemotePairing" Content="Allow pairing from outside the local network"
+                    <CheckBox x:Name="ChkRemotePairing"
                               Checked="OnSettingChanged" Unchecked="OnSettingChanged" Margin="0,8,0,2" />
                     <TextBlock x:Name="LblRemoteHint" Style="{StaticResource Dim}" Margin="24,0,0,14" />
 

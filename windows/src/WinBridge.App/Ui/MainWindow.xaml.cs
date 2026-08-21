@@ -52,6 +52,74 @@ public partial class MainWindow : Window
         LblPort.Text = Strings.Get("settings.port");
         LblLanguage.Text = Strings.Get("settings.language");
         LblRestartNote.Text = Strings.Get("settings.restartnote");
+
+        ApplyFeatureStrings();
+    }
+
+    /// <summary>
+    /// The 0.2.0 tabs, kept out of the method above only for length. Set from
+    /// code rather than bound in XAML because the language can change while the
+    /// window is open, and a literal in the markup would stay in whatever
+    /// language it was written in.
+    /// </summary>
+    private void ApplyFeatureStrings()
+    {
+        TabFeatures.Header = Strings.Get("tab.features");
+        TabAutomations.Header = Strings.Get("tab.automations");
+
+        LblClipboardHead.Text = Strings.Get("features.clipboard");
+        ChkClipToPhone.Content = Strings.Get("features.clip.tophone");
+        ChkClipFromPhone.Content = Strings.Get("features.clip.fromphone");
+        ChkClipImages.Content = Strings.Get("features.clip.images");
+
+        LblFilesHead.Text = Strings.Get("features.files");
+        ChkFiles.Content = Strings.Get("features.files.enabled");
+        ChkFilesAuto.Content = Strings.Get("features.files.auto");
+        ChkShellMenu.Content = Strings.Get("features.files.shellmenu");
+        LblSaveTo.Text = Strings.Get("features.files.saveto");
+
+        LblScreenHead.Text = Strings.Get("features.screen");
+        ChkScreenShare.Content = Strings.Get("features.screen.share");
+        ChkScreenAudio.Content = Strings.Get("features.screen.audio");
+        ChkViewPhone.Content = Strings.Get("features.screen.viewphone");
+        ChkInput.Content = Strings.Get("features.screen.input");
+        LblCarrierHint.Text = Strings.Get("features.screen.carrierhint");
+
+        LblAudioHead.Text = Strings.Get("features.audio");
+        ChkAudioToPhone.Content = Strings.Get("features.audio.tophone");
+        ChkAudioFromPhone.Content = Strings.Get("features.audio.fromphone");
+        ChkMicToPhone.Content = Strings.Get("features.audio.mictophone");
+        ChkMicFromPhone.Content = Strings.Get("features.audio.micfromphone");
+        LblRenderDevice.Text = Strings.Get("features.audio.renderdevice");
+        LblVirtualCableHint.Text = Strings.Get("features.audio.cablehint");
+
+        LblNotifHead.Text = Strings.Get("features.notifications");
+        ChkNotifications.Content = Strings.Get("features.notif.enabled");
+        ChkNotifToasts.Content = Strings.Get("features.notif.toasts");
+        ChkNotifReply.Content = Strings.Get("features.notif.reply");
+
+        LblPresenceHead.Text = Strings.Get("features.presence");
+        ChkLockOnAway.Content = Strings.Get("features.presence.lock");
+
+        ChkAutomations.Content = Strings.Get("auto.enabled");
+        ChkAutoAuthoring.Content = Strings.Get("auto.authoring");
+        ChkShell.Content = Strings.Get("auto.shell");
+        LblShellHint.Text = Strings.Get("auto.shell.hint");
+        LblTrustMode.Text = Strings.Get("auto.trustmode");
+        ItemStrict.Content = Strings.Get("auto.trustmode.strict");
+        ItemTrusted.Content = Strings.Get("auto.trustmode.trusted");
+        LblAllowlist.Text = Strings.Get("auto.allowlist");
+        ChkAllowElevated.Content = Strings.Get("auto.allowelevated");
+        ChkAllowNetwork.Content = Strings.Get("auto.allownetwork");
+        ChkAllowFileWrite.Content = Strings.Get("auto.allowfilewrite");
+        ChkPanic.Content = Strings.Get("auto.panic");
+        LblPanicHint.Text = Strings.Get("auto.panic.hint");
+        LblRunsHead.Text = Strings.Get("auto.runs");
+
+        // The device list carries a translated first entry, so it has to be
+        // rebuilt when the language changes rather than only at load.
+        if (!_loading) LoadAudioDevices(App.Store.Settings.Audio.RenderDevice);
+        RefreshAuditLog();
     }
 
     private void LoadSettings()
@@ -262,7 +330,11 @@ public partial class MainWindow : Window
     private void LoadAudioDevices(string? selected)
     {
         CmbRenderDevice.Items.Clear();
-        CmbRenderDevice.Items.Add(new ComboBoxItem { Content = "System default", Tag = "" });
+        CmbRenderDevice.Items.Add(new ComboBoxItem
+        {
+            Content = Strings.Get("features.audio.systemdefault"),
+            Tag = "",
+        });
 
         int index = 0;
         foreach (var device in App.Server.Audio.Devices().Where(d => d.Flow == "render"))
@@ -279,7 +351,7 @@ public partial class MainWindow : Window
     {
         var runs = App.Server.Automations.Store.RecentRuns(25);
         LblAuditLog.Text = runs.Count == 0
-            ? "Nothing has run yet."
+            ? Strings.Get("auto.runs.none")
             : string.Join(Environment.NewLine, runs.Select(r =>
                 $"{r.At.LocalDateTime:yyyy-MM-dd HH:mm:ss}  {(r.Ok ? "ok " : "FAIL")}  {r.Name}  ({r.Device}, {r.DurationMs} ms)"
                 + (r.Detail is null ? "" : $"  — {r.Detail}")));

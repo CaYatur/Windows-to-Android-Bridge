@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using WinBridge.App.Localization;
 using WinBridge.App.Server;
 using WinBridge.App.Storage;
 using WinBridge.Core.Protocol;
@@ -186,7 +187,7 @@ public sealed class AutomationService(BridgeStore store, AutomationStore automat
         }
 
         var request = new ApprovalRequest(
-            Title: existing is null ? "New automation from your phone" : "Automation changed on your phone",
+            Title: Strings.Get(existing is null ? "approve.new" : "approve.changed"),
             AutomationName: normalised.Name,
             DeviceName: link.PeerName,
             Risk: normalised.Risk ?? "safe",
@@ -400,7 +401,7 @@ public sealed class AutomationService(BridgeStore store, AutomationStore automat
             emit(Event(runId, automation.Id, "awaiting-confirm", "waiting for confirmation on the PC"));
 
             var approval = new ApprovalRequest(
-                Title: "Run this on your PC?",
+                Title: Strings.Get("approve.run"),
                 AutomationName: automation.Name,
                 DeviceName: link.PeerName,
                 Risk: automation.Risk ?? "safe",

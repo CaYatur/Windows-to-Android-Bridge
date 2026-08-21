@@ -23,6 +23,7 @@ public static class ShellIntegration
     private const string FolderVerbKey = @"Software\Classes\Directory\shell\WinBridge.SendToPhone";
     private const string BackgroundVerbKey = @"Software\Classes\Directory\Background\shell\WinBridge.SendToPhone";
     private const string EventName = @"Local\WinBridge.Outbox";
+    private const string PairingEventName = @"Local\WinBridge.ShowPairing";
 
     private static string SpoolDirectory => Path.Combine(BridgeStore.DefaultDirectory, "outbox");
 
@@ -60,6 +61,42 @@ public static class ShellIntegration
 
         using var command = key.CreateSubKey("command");
         command.SetValue(null, $"\"{exe}\" --send {argument}");
+    }
+
+    /// <summary>
+    /// Asks the already-running copy to open the pairing window.
+    ///
+    /// Without this, `WinBridge.exe --pair` while the tray app is running exits
+    /// at the single-instance check and does nothing at all — which is exactly
+    /// when someone would reach for it.
+    /// </summary>
+    public static bool RequestPairing()
+    {
+        try
+        {
+            using var signal = new EventWaitHandle(false, EventResetMode.AutoReset, PairingEventName);
+            signal.Set();
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Watches for that request from the running instance.</summary>
+    public static void WatchPairingRequests(Action onRequest, CancellationToken ct)
+    {
+        var thread = new Thread(() =>
+        {
+            using var signal = new EventWaitHandle(false, EventResetMode.AutoReset, PairingEventName);
+            while (!ct.IsCancellationRequested)
+            {
+                if (signal.WaitOne(TimeSpan.FromSeconds(1))) onRequest();
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "winbridge-pairing-signal",
+        };
+        thread.Start();
     }
 
     /// <summary>Called by the copy Explorer launched. Returns immediately.</summary>
