@@ -12,6 +12,8 @@ kurun: telefondan, saatten, bir widget'tan ya da sesinizle.
 > bu sürüm büyük, ve iki makine ile kronometre gerektiren kısımlar dürüstçe
 > ayrıca belirtildi.
 
+[cover.png](docs/image/cover.png)
+
 ---
 
 ## Neler yapıyor
