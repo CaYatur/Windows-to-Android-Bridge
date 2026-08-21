@@ -64,10 +64,22 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleDebug --no-daemon
 
+      # The watch is a separate module with its own dependencies, and nothing
+      # else here compiles it. Left out, a broken tile or complication reaches a
+      # release without a single build ever having looked at it.
+      - name: Build watch debug APK
+        working-directory: android
+        run: ./gradlew :wear:assembleDebug --no-daemon
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wear-debug
+          path: android/wear/build/outputs/apk/debug/wear-debug.apk
 
   windows:
     name: Windows host
