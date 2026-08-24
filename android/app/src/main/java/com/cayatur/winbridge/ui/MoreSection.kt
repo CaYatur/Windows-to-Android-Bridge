@@ -233,6 +233,17 @@ fun MoreSection(onOpenScreen: () -> Unit, onVoice: () -> Unit) {
             hint = stringResource(R.string.settings_notifications_hint),
         ) { context.startActivity(NotificationRelay.settingsIntent()) }
 
+        Spacer(Modifier.height(4.dp))
+        Toggle(
+            stringResource(R.string.settings_persistent_notification),
+            app.store.persistentNotification,
+        ) {
+            app.store.persistentNotification = it
+            com.cayatur.winbridge.service.BridgeService.refreshNotification(context)
+            refresh++
+        }
+        Hint(stringResource(R.string.settings_persistent_notification_hint))
+
         // ---- assistant ------------------------------------------------------
         Spacer(Modifier.height(20.dp))
         Text(stringResource(R.string.settings_assistant), style = MaterialTheme.typography.titleMedium,

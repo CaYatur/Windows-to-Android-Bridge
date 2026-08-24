@@ -79,38 +79,67 @@ class CaptureService : Service() {
         super.onCreate()
         Notices.ensureChannels(this)
         started = System.currentTimeMillis()
-        startForeground(Notices.ID_CAPTURE, buildNotification(), foregroundTypes())
+        updateForeground()
     }
 
-    private fun foregroundTypes(): Int {
+    private fun foregroundTypes(hasScreen: Boolean, hasMic: Boolean): Int {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return 0
-        var types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        var types = 0
+        if (hasScreen) {
+            types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+        }
+        if (hasMic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         }
+        if (types == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        }
         return types
+    }
+
+    private fun updateForeground() {
+        val hasScreen = projection != null
+        val hasMic = microphone != null
+
+        val title = when {
+            hasScreen && hasMic -> getString(R.string.capture_and_mic_running, app.state.host.value?.name ?: "PC")
+            hasMic && !hasScreen -> getString(R.string.mic_running, app.state.host.value?.name ?: "PC")
+            else -> getString(R.string.capture_running, app.state.host.value?.name ?: "PC")
+        }
+
+        val isMicOnly = !hasScreen && hasMic
+        val notification = buildNotification(title, isMicOnly)
+        val types = foregroundTypes(hasScreen, hasMic)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(Notices.ID_CAPTURE, notification, types)
+        } else {
+            startForeground(Notices.ID_CAPTURE, notification)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> start(intent)
-            ACTION_STOP -> { stopEverything(); stopSelf() }
+            ACTION_STOP -> {
+                stopScreenOnly()
+                if (microphone == null) {
+                    stopEverything()
+                    stopSelf()
+                } else {
+                    updateForeground()
+                }
+            }
             ACTION_START_MIC -> startMicrophone(
                 intent.getIntExtra(EXTRA_RATE, 48000),
                 intent.getIntExtra(EXTRA_CHANNELS, 1),
             )
             ACTION_STOP_MIC -> {
-                microphone?.stop()
-                microphone = null
-                app.scope.launch {
-                    runCatching {
-                        app.client.sendMessage(
-                            AudioInfo(
-                                stream = StreamIds.name(StreamIds.PHONE_MIC),
-                                active = false, reason = "stopped on the phone",
-                            ),
-                        )
-                    }
+                stopMicOnly()
+                if (projection == null) {
+                    stopEverything()
+                    stopSelf()
+                } else {
+                    updateForeground()
                 }
             }
         }
@@ -127,7 +156,10 @@ class CaptureService : Service() {
 
         if (data == null) {
             Log.w(TAG, "capture asked for without a projection grant")
-            stopSelf()
+            if (microphone == null) {
+                stopEverything()
+                stopSelf()
+            }
             return
         }
 
@@ -142,20 +174,29 @@ class CaptureService : Service() {
             active.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
                     Log.i(TAG, "projection revoked")
-                    stopEverything()
-                    stopSelf()
+                    stopScreenOnly()
+                    if (microphone == null) {
+                        stopEverything()
+                        stopSelf()
+                    } else {
+                        updateForeground()
+                    }
                 }
             }, handlerFor("winbridge-projection"))
         }
 
         if (projection == null) {
             Log.w(TAG, "the projection grant was refused")
-            stopSelf()
+            if (microphone == null) {
+                stopEverything()
+                stopSelf()
+            }
             return
         }
 
         startScreen()
         if (app.store.screenShareAudio) startPlaybackCapture()
+        updateForeground()
     }
 
     private fun handlerFor(name: String): Handler {
@@ -316,42 +357,41 @@ class CaptureService : Service() {
                     .build()
             },
         ).also { it.start(app) }
+        updateForeground()
     }
 
     // ---- lifecycle ----------------------------------------------------------
 
-    private fun buildNotification(): Notification {
-        val stop = PendingIntent.getBroadcast(
+    private fun buildNotification(title: String, isMicOnly: Boolean): Notification {
+        val stopAction = if (isMicOnly) ACTION_STOP_MIC else ACTION_STOP
+        val stop = PendingIntent.getService(
             this, 0,
-            Intent(this, NotificationActionReceiver::class.java)
-                .setAction(NotificationActionReceiver.ACTION_STOP_CAPTURE),
+            Intent(this, CaptureService::class.java).setAction(stopAction),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        val icon = if (isMicOnly) android.R.drawable.ic_btn_speak_now else R.drawable.ic_monitor
+        val actionText = if (isMicOnly) getString(R.string.mic_stop) else getString(R.string.capture_stop)
+
         return Notification.Builder(this, Notices.CHANNEL_CAPTURE)
-            .setContentTitle(
-                getString(R.string.capture_running, app.state.host.value?.name ?: "PC"),
-            )
-            .setSmallIcon(R.drawable.ic_monitor)
+            .setContentTitle(title)
+            .setSmallIcon(icon)
             .setOngoing(true)
             .addAction(
-                Notification.Action.Builder(null, getString(R.string.capture_stop), stop).build(),
+                Notification.Action.Builder(null, actionText, stop).build(),
             )
             .build()
     }
 
-    private fun stopEverything() {
+    private fun stopScreenOnly() {
         RemoteInputService.sessionOpen = false
 
         runCatching { display?.release() }
         runCatching { reader?.close() }
         runCatching { projection?.stop() }
         audio?.stop()
-        microphone?.stop()
         thread?.quitSafely()
 
-        // Phone audio capture dies with the projection, so the PC has to be told
-        // to close its sink or it sits waiting for packets that stopped coming.
         val hadAudio = audio != null
         if (hadAudio) {
             app.scope.launch {
@@ -370,7 +410,6 @@ class CaptureService : Service() {
         reader = null
         projection = null
         audio = null
-        microphone = null
         encoder = null
         handler = null
         thread = null
@@ -386,6 +425,34 @@ class CaptureService : Service() {
                 )
             }
         }
+    }
+
+    private fun stopMicOnly() {
+        microphone?.stop()
+        microphone = null
+
+        app.scope.launch {
+            runCatching {
+                app.client.sendMessage(
+                    AudioInfo(
+                        stream = StreamIds.name(StreamIds.PHONE_MIC),
+                        active = false, reason = "stopped on the phone",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun stopEverything() {
+        stopScreenOnly()
+        stopMicOnly()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        Notices.clear(this, Notices.ID_CAPTURE)
     }
 
     override fun onDestroy() {
@@ -411,6 +478,10 @@ class CaptureService : Service() {
             context.startService(
                 Intent(context, CaptureService::class.java).setAction(ACTION_STOP),
             )
+        }
+
+        fun stopAll(context: Context) {
+            context.stopService(Intent(context, CaptureService::class.java))
         }
 
         fun startMicrophone(context: Context, rate: Int, channels: Int) {

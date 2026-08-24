@@ -149,7 +149,10 @@
     <string name="transfer_sending_count">%2$s cihazına %1$d öğe gönderiliyor</string>
 
     <string name="capture_running">Ekran %1$s ile paylaşılıyor</string>
+    <string name="mic_running">Mikrofon %1$s ile paylaşılıyor</string>
+    <string name="capture_and_mic_running">Ekran ve mikrofon %1$s ile paylaşılıyor</string>
     <string name="capture_stop">Durdur</string>
+    <string name="mic_stop">Durdur</string>
     <string name="capture_denied">Ekran paylaşımına izin verilmedi</string>
 
     <string name="pc_screen_connecting">Bilgisayardan ekran isteniyor…</string>
@@ -190,6 +193,8 @@
     <string name="settings_mic_from_pc">Bilgisayar mikrofonunu burada çal</string>
     <string name="settings_notifications">Bildirimlerimi bilgisayara yansıt</string>
     <string name="settings_notifications_hint">Varsayılan olarak kapalı: telefondaki her bildirimi okur. Android ayarlarından bildirim erişimi gerekir.</string>
+    <string name="settings_persistent_notification">Bağlantı yokken bildirimi göster</string>
+    <string name="settings_persistent_notification_hint">Bilgisayara bağlı değilken de durum bildirimini ekranda tutar</string>
     <string name="settings_assistant">Asistan ve kısayollar</string>
     <string name="settings_shortcuts">Otomasyonları kısayol olarak yayınla</string>
     <string name="settings_shortcuts_hint">Her otomasyon bir uygulama kısayolu olur; asistan rutinine veya ana ekrana ekleyebilirsiniz.</string>

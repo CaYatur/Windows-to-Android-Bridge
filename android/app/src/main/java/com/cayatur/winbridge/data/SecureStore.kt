@@ -125,6 +125,9 @@ class SecureStore(context: Context) {
     var notificationSkipOngoing by BoolPref("notifSkipOngoing", true)
     var notificationBlocked by StringSetPref("notifBlocked")
 
+    /** Keep the foreground status notification visible when disconnected. On by default. */
+    var persistentNotification by BoolPref("persistentNotification", true)
+
     var automationsEnabled by BoolPref("automations", true)
 
     /** Let the PC ring this phone when it is lost down the side of a sofa. */

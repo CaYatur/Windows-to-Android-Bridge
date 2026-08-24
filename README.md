@@ -7,7 +7,7 @@ from the phone, the watch, a widget or your voice.
 
 🇹🇷 [Türkçe README](README.tr.md)
 
-> **Status:** [v0.2.0](../../releases/latest). See
+> **Status:** [v0.3.0](../../releases/latest). See
 > [what is verified](#what-has-actually-been-run) below — this release is large
 > and the parts that need two machines and a stopwatch are called out honestly.
 

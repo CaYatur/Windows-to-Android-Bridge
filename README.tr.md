@@ -7,7 +7,7 @@ kurun: telefondan, saatten, bir widget'tan ya da sesinizle.
 
 🇬🇧 [English README](README.md)
 
-> **Durum:** [v0.2.0](../../releases/latest). Aşağıdaki
+> **Durum:** [v0.3.0](../../releases/latest). Aşağıdaki
 > [neler gerçekten çalıştırıldı](#neler-gerçekten-çalıştırıldı) bölümüne bakın —
 > bu sürüm büyük, ve iki makine ile kronometre gerektiren kısımlar dürüstçe
 > ayrıca belirtildi.

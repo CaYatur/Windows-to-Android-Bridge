@@ -150,7 +150,10 @@
     <string name="transfer_sending_count">Sending %1$d items to %2$s</string>
 
     <string name="capture_running">Sharing this screen with %1$s</string>
+    <string name="mic_running">Sharing microphone with %1$s</string>
+    <string name="capture_and_mic_running">Sharing screen and microphone with %1$s</string>
     <string name="capture_stop">Stop</string>
+    <string name="mic_stop">Stop</string>
     <string name="capture_denied">Screen sharing was not allowed</string>
 
     <string name="pc_screen_connecting">Asking your PC for its screen…</string>
@@ -191,6 +194,8 @@
     <string name="settings_mic_from_pc">Play the PC microphone here</string>
     <string name="settings_notifications">Mirror my notifications to the PC</string>
     <string name="settings_notifications_hint">Off by default: this reads every notification on the phone. Needs notification access in Android settings.</string>
+    <string name="settings_persistent_notification">Keep notification when disconnected</string>
+    <string name="settings_persistent_notification_hint">Show status notification even when disconnected from PC</string>
     <string name="settings_assistant">Assistant and shortcuts</string>
     <string name="settings_shortcuts">Publish automations as shortcuts</string>
     <string name="settings_shortcuts_hint">Each automation becomes an app shortcut, so you can add it to an assistant routine or the home screen.</string>

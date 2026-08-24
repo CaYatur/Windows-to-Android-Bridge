@@ -15,6 +15,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -53,7 +54,10 @@ class BridgeService : Service() {
         // Android kills the process if startForeground does not land within a
         // few seconds of onCreate, so the notification goes up before anything
         // that could block.
-        startForeground(NOTIFICATION_ID, buildNotification(getString(R.string.status_connecting)))
+        postForeground(getString(R.string.status_connecting))
+        if (app.state.connection.value.phase == ConnectionPhase.DISCONNECTED && !app.store.persistentNotification) {
+            removeForeground()
+        }
 
         registerNetworkCallback()
         registerBluetoothReceiver()
@@ -66,13 +70,7 @@ class BridgeService : Service() {
 
         app.scope.launch {
             app.state.connection.collectLatest { info ->
-                val text = when (info.phase) {
-                    ConnectionPhase.CONNECTED ->
-                        getString(R.string.status_connected_to, info.hostName ?: "PC")
-                    ConnectionPhase.CONNECTING -> getString(R.string.status_connecting)
-                    ConnectionPhase.DISCONNECTED -> getString(R.string.status_disconnected)
-                }
-                notificationManager().notify(NOTIFICATION_ID, buildNotification(text))
+                updateNotification(info)
                 WidgetRepository.publish(this@BridgeService, app.state)
             }
         }
@@ -121,14 +119,54 @@ class BridgeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null && Intent.ACTION_MEDIA_BUTTON == intent.action) {
-            mediaProxy.handleMediaButtonIntent(intent)
+        when (intent?.action) {
+            Intent.ACTION_MEDIA_BUTTON -> mediaProxy.handleMediaButtonIntent(intent)
+            ACTION_REFRESH_NOTIF -> updateNotification(app.state.connection.value)
         }
         app.client.start()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun postForeground(text: String) {
+        val notification = buildNotification(text)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        notificationManager().notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun removeForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        notificationManager().cancel(NOTIFICATION_ID)
+    }
+
+    private fun updateNotification(info: com.cayatur.winbridge.net.ConnectionInfo) {
+        when (info.phase) {
+            ConnectionPhase.CONNECTED -> {
+                postForeground(getString(R.string.status_connected_to, info.hostName ?: "PC"))
+            }
+            ConnectionPhase.CONNECTING -> {
+                postForeground(getString(R.string.status_connecting))
+            }
+            ConnectionPhase.DISCONNECTED -> {
+                CaptureService.stopAll(this)
+                if (app.store.persistentNotification) {
+                    postForeground(getString(R.string.status_disconnected))
+                } else {
+                    removeForeground()
+                }
+            }
+        }
+    }
 
     private fun registerNetworkCallback() {
         val manager = getSystemService(ConnectivityManager::class.java) ?: return
@@ -217,9 +255,21 @@ class BridgeService : Service() {
         private const val CHANNEL_ID = "winbridge.link"
         private const val NOTIFICATION_ID = 1
         private const val WIDGET_REFRESH_MS = 5_000L
+        const val ACTION_REFRESH_NOTIF = "com.cayatur.winbridge.REFRESH_NOTIF"
 
         fun start(context: Context) {
             val intent = Intent(context, BridgeService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        fun refreshNotification(context: Context) {
+            val intent = Intent(context, BridgeService::class.java).apply {
+                action = ACTION_REFRESH_NOTIF
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {
